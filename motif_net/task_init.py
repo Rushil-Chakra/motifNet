@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Optional, Literal
 from .tasks import Task, TaskPeriod
 
 import torch
@@ -1115,26 +1115,7 @@ class ReactCategoryAnti(Task):
         self.z[response_start:, :, 1:] = theta.squeeze(1)
         self.theta[response_start:] = theta_2.squeeze(1)
 
-
-def task_generator(task_list: Optional[list[Task]] = None, kwargs: dict = {}) -> Task:
-    """Randomly picks a task.
-
-    Parameters
-    ----------
-    task_list:
-        Custom list of tasks to select from. By default all tasks are considered
-        with ``ContextIntModality1`` and ``ContextIntModality2`` are each 5x more likely to be chosen.
-    kwargs
-        Named parameters to pass to task initialization.
-
-    Returns
-    -------
-    task
-        A randomly chosen task.
-    """
-    # This is horrible and seriously needs to be refactrored
-    if task_list is None:
-        task_list = [
+task_type = Literal[
             "DelayedPro",
             "DelayedAnti",
             "MemoryPro",
@@ -1144,15 +1125,6 @@ def task_generator(task_list: Optional[list[Task]] = None, kwargs: dict = {}) ->
             "IntegrationModality1",
             "IntegrationModality2",
             "ContextIntModality1",
-            "ContextIntModality1",
-            "ContextIntModality1",
-            "ContextIntModality1",
-            "ContextIntModality1",
-            "ContextIntModality2",
-            "ContextIntModality2",
-            "ContextIntModality2",
-            "ContextIntModality2",
-            "ContextIntModality2",
             "ContextIntModality2",
             "IntegrationMultiModal",
             "ReactMatch2Sample",
@@ -1160,6 +1132,21 @@ def task_generator(task_list: Optional[list[Task]] = None, kwargs: dict = {}) ->
             "ReactCategoryPro",
             "ReactCategoryAnti",
         ]
+def init(task_name: task_type, **kwargs: dict) -> Task:
+    """Initialize a task by name
+
+    Parameters
+    ----------
+    task_name
+        Name of task. Must be from controlled list
+    **kwargs
+        Named parameters to pass to task initialization.
+
+    Returns
+    -------
+    task_obj
+        An instantiation of the task object requested
+    """
     task_dict = {
         "DelayedPro": DelayedPro,
         "DelayedAnti": DelayedAnti,
@@ -1177,6 +1164,29 @@ def task_generator(task_list: Optional[list[Task]] = None, kwargs: dict = {}) ->
         "ReactCategoryPro": ReactCategoryPro,
         "ReactCategoryAnti": ReactCategoryAnti,
     }
-    task_object = task_dict[task_list[np.random.randint(0, len(task_list))]]
-    task = task_object(**kwargs)
-    return task
+    task_obj = task_dict[task_name](**kwargs)
+    return task_obj
+
+
+def task_generator(task_list: Optional[list[Task]] = None, kwargs: dict = {}) -> Task:
+    """Randomly picks a task.
+
+    Parameters
+    ----------
+    task_list:
+        Custom list of tasks to select from. By default all tasks are considered
+        with ``ContextIntModality1`` and ``ContextIntModality2`` are each 5x more likely to be chosen.
+    kwargs
+        Named parameters to pass to task initialization.
+
+    Returns
+    -------
+    task
+        A randomly chosen task.
+    """
+    # if task_list is None:
+        
+    
+    # task_object = task_dict[task_list[np.random.randint(0, len(task_list))]]
+    # task = task_object(**kwargs)
+    # return task
