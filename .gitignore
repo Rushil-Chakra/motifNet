@@ -83,6 +83,9 @@ instance/
 # MkDocs documentation
 docs/site/
 
+# mlflow loggin
+mlruns/
+
 # PyBuilder
 .pybuilder/
 target/
