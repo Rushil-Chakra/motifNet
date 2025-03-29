@@ -16,3 +16,4 @@ model:
   tau: 100
   init_method: "diag"
   g: 0.8
+  seed: 42
