@@ -1,5 +1,5 @@
 from typing import Union, Optional
-from tasks import Task, TaskPeriod
+from .tasks import Task, TaskPeriod
 
 import torch
 import numpy as np

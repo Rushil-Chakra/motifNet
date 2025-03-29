@@ -1,5 +1,7 @@
-import torch
+from typing import Tuple
 
+import torch
+import yaml
 
 def criterion(z: torch.Tensor, z_hat: torch.Tensor, mask: torch.Tensor) -> float:
     """Computes the loss for a model output and task.
@@ -74,3 +76,27 @@ def retanh(input: torch.Tensor) -> torch.Tensor:
     tanh = torch.nn.functional.tanh(input)
     output = torch.nn.functional.relu(tanh)
     return output
+
+
+def load_config(yaml_path: str) -> Tuple[dict, dict]:
+    """_summary_
+
+    Parameters:
+    -----------
+        yaml_path
+            Path to yaml config file.
+
+    Returns:
+    --------
+        train_config
+            Parameters for training configuration 
+        model_config
+            Parameters for model configuration
+    """
+    with open(yaml_path, 'r') as f:
+        config = yaml.load(f, Loader=yaml.Loader)
+    
+    train_config = config["train"]
+    model_config = config["model"]
+    
+    return train_config, model_config

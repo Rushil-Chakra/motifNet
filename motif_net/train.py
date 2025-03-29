@@ -1,12 +1,12 @@
 from typing import Optional
-from tasks import Task
+from .tasks import Task
 
-import task_init
-from utils import criterion, correct_task
+from . import task_init
+from .utils import criterion, correct_task
 
 import torch
 from torch import optim
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 
 import logging
 
@@ -54,7 +54,7 @@ def train(
         model = torch.nn.DataParallel(model)
     model.to(device)
 
-    writer = SummaryWriter()
+    # writer = SummaryWriter()
 
     # Maybe make optim a hyper-parameter?
     l2_w_term = l2_terms[0]
@@ -89,8 +89,8 @@ def train(
             # )
             # fig3, _ = plot.pca_plotter(hidden_state=h_t.detach().cpu().numpy())
 
-            writer.add_scalar("Loss", loss_i, i)
-            writer.add_scalar("Accuracy", accuracy_i, i)
+            # writer.add_scalar("Loss", loss_i, i)
+            # writer.add_scalar("Accuracy", accuracy_i, i)
             # writer.add_figure("Plot", fig2, i)
             update_str = (
                 f"Progress: {i/max_iter:.2%}\tLoss: {loss_i}\t Accuracy: {accuracy_i}"
@@ -107,5 +107,5 @@ def train(
 
         prev_loss = loss.item()
 
-    writer.flush()
+    # writer.flush()
     return model
