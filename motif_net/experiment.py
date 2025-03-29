@@ -1,15 +1,13 @@
-from typing import Union, Optional, Tuple
+from typing import Union
 from .tasks import Task
 
 from .network import MotifNetwork
 from .train import train
-from . import task_init
 from .utils import load_config
 
 import torch
 
 import pickle
-import yaml
 import logging
 
 # from FixedPointFinder.FixedPointFinderTorch import (
@@ -19,8 +17,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-SEED = 42
-rng = torch.manual_seed(SEED)
 
 
 def run_training(
@@ -45,9 +41,10 @@ def run_training(
     if isinstance(task_list, Task):
         task_list = [task_list]
     train_config, model_config = load_config(yaml_config)
-    model_config["seed"] = SEED
 
     model = MotifNetwork(**model_config)
+
+    rng = torch.manual_seed(model_config["seed"])
 
     train_config["task_list"] = task_list
     train_config["task_kwargs"]["rng"] = rng
