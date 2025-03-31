@@ -86,9 +86,7 @@ class MotifNetwork(nn.Module):
             h_0_w = torch.eye((self.hidden_size)) * g
         elif init_method == "gauss":
             h_0_w = (
-                torch.randn((self.hidden_size, self.hidden_size))
-                * g
-                / np.sqrt(self.hidden_size)
+                torch.randn((self.hidden_size, self.hidden_size)) * g / np.sqrt(self.hidden_size)
             )
         self.hi2hi.weight = torch.nn.Parameter(h_0_w)
 
@@ -96,7 +94,7 @@ class MotifNetwork(nn.Module):
 
     def forward(
         self,
-        u: torch.Tensor,
+        x: torch.Tensor,
         h_t: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Computes a training step.
@@ -107,7 +105,7 @@ class MotifNetwork(nn.Module):
 
         Parameters
         ----------
-        u
+        x
             The input array from a task. Take the shape (T, batch_size, 20).
         h_t
             The current hidden state of the network. This is either the initialized
@@ -115,23 +113,23 @@ class MotifNetwork(nn.Module):
 
         Returns
         -------
-        z
+        y
             The estimated output. Takes shape (T, batch_shape, 3)
         h_t
             The updated hidden weights of the network. Takes the shape (T, batch_size, hidden_size)
         """
-        z = torch.zeros((u.shape[0], u.shape[1], 3)).to(self.device)
-        h = torch.zeros((u.shape[0], u.shape[1], self.hidden_size)).to(self.device)
+        y = torch.zeros((x.shape[0], x.shape[1], 3)).to(self.device)
+        h = torch.zeros((x.shape[0], x.shape[1], self.hidden_size)).to(self.device)
         # ushing function definitions from paper
-        for i in range(u.shape[0]):
+        for i in range(x.shape[0]):
             noise = torch.normal(torch.zeros(h_t.size()), self.private_noise_std)
             h_t = (1 - self.gamma) * h_t + self.gamma * self.nonlinearity(
-                self.hi2hi(h_t) + self.in2hi(u[i]) + noise
+                self.hi2hi(h_t) + self.in2hi(x[i]) + noise
             )
-            z_t = self.hi2out(h_t)
-            z[i] = z_t
+            y_t = self.hi2out(h_t)
+            y[i] = y_t
             h[i] = h_t
-        return z, h
+        return y, h
 
     def init_hidden(self, batch_size: int) -> torch.Tensor:
         """Initialize the hidden state of the network.
@@ -147,9 +145,7 @@ class MotifNetwork(nn.Module):
             An initialized hidden state using the ``kaiming_uniform_`` function from pytorch.
         Takes shape (batch_size, hidden_size)
         """
-        h_0 = torch.nn.init.zeros_(torch.empty(batch_size, self.hidden_size)).to(
-            self.device
-        )
+        h_0 = torch.nn.init.zeros_(torch.empty(batch_size, self.hidden_size)).to(self.device)
         return h_0
 
     # TODO: define a localized initialization where connections are in neighborhoods
