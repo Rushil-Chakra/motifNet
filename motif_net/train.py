@@ -6,6 +6,7 @@ from .utils import criterion, correct_task
 
 import torch
 from torch import optim
+
 # from torch.utils.tensorboard import SummaryWriter
 
 import logging
@@ -66,18 +67,19 @@ def train(
         h_t = model.init_hidden(batch_size)
         optimizer.zero_grad()
 
-        task = task_init.task_generator(task_list, task_kwargs)
-        u = task.get_input_array()
-        z_hat, h_t = model(u, h_t)
-        z, theta = task.get_output()
+        # TODO: FIX THIS LINE
+        # task = task_init.task_generator(task_list, task_kwargs)
+        x = task.get_input_array()
+        y_hat, h_t = model(x, h_t)
+        y, theta = task.get_output()
         mask = task.get_mask()
 
         activation_loss = l2_a_term * torch.square(torch.norm(h_t, p=2))
-        loss = criterion(z, z_hat, mask) + activation_loss
+        loss = criterion(y, y_hat, mask) + activation_loss
         loss.backward()
 
         if i % 10000 == 0:
-            accuracy_i = correct_task(theta, z_hat)
+            accuracy_i = correct_task(theta, y_hat)
             loss_i = loss.item()
             # fig1, _ = plot.stim_plotter(
             #     theta.detach().cpu().numpy(), z_hat.detach().cpu().numpy()
@@ -92,9 +94,7 @@ def train(
             # writer.add_scalar("Loss", loss_i, i)
             # writer.add_scalar("Accuracy", accuracy_i, i)
             # writer.add_figure("Plot", fig2, i)
-            update_str = (
-                f"Progress: {i/max_iter:.2%}\tLoss: {loss_i}\t Accuracy: {accuracy_i}"
-            )
+            update_str = f"Progress: {i/max_iter:.2%}\tLoss: {loss_i}\t Accuracy: {accuracy_i}"
             logger.info(update_str)
 
         if clip_grad:
