@@ -1,5 +1,5 @@
 from typing import Union
-from .tasks import Task
+from task_data.tasks import Task
 
 from .network import MotifNetwork
 from .train import train
@@ -18,43 +18,70 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class Experiment:
+    def __init__(
+        self, logging: bool, yaml_config: str, task_list: Union[Task, list[Task]]
+    ) -> None:
+        """Experiment class to track model performance based on input params
 
-def run_training(
-    yaml_config: str,
-    task_list: Union[Task, list[Task]] = None,
-) -> torch.nn:
-    """Train a network on a a set of tasks.
+        Parameters
+        ----------
+        logging
+            boolean to determine if logging is used using ``mlflow``
+        yaml_config
+            Path to config file
+        task_list
+            list of tasks to train network on. Must be either a list of
+            tasks or a single task.
+        """
+        self.logging = logging
+        self.yaml_config = yaml_config
 
-    Parameters
-    ----------
-    yaml_config
-        Path to config file
-    task_list
-        list of tasks to train network on. Must be either a list of
-        tasks or a single task.
+        if isinstance(task_list, Task):
+            task_list = [task_list]
+        self.task_list = task_list
 
-    Returns
-    -------
-    model
-        The trained network. This is also saved into a model directory
-    """
-    if isinstance(task_list, Task):
-        task_list = [task_list]
-    train_config, model_config = load_config(yaml_config)
+        train_config, model_config = load_config(yaml_config)
+        self.model = MotifNetwork(**model_config)
 
-    model = MotifNetwork(**model_config)
+        rng = torch.manual_seed(model_config["seed"])
+        train_config["task_list"] = task_list
+        train_config["task_kwargs"]["rng"] = rng
+        train_config["model"] = self.model
 
-    rng = torch.manual_seed(model_config["seed"])
+        self.train_config = train_config
 
-    train_config["task_list"] = task_list
-    train_config["task_kwargs"]["rng"] = rng
-    train_config["model"] = model
+        self.output_dir = None
 
-    model = train(**train_config)
-    logger.info("saving model")
-    # TODO: Save model with some parameter set as name
-    torch.save(model, "models/date/trained_model.pt")
-    return model
+    def run_training(
+        self,
+    ) -> torch.nn:
+        """Train a network on a a set of tasks.
+
+        Returns
+        -------
+        model
+            The trained network. This is also saved into a model directory
+        """
+        model = train(**self.train_config)
+
+        logger.info("saving model")
+        # TODO: Save model with some parameter set as name
+        torch.save(model, "models/date/trained_model.pt")
+        return model
+
+    def mlflow_log(self) -> None:
+        if not self.logging:
+            return
+
+    def find_fixed_points(self) -> None:
+        raise NotImplementedError
+
+    def plot_fixed_points(self) -> None:
+        raise NotImplementedError
+
+    def submit_slurm(self) -> None:
+        raise NotImplementedError
 
 
 # def find_fixed_points(trained_model, batch_size):
