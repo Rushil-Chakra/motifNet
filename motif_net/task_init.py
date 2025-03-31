@@ -1,104 +1,75 @@
 from typing import Optional, Literal
 from .tasks import Task, TaskPeriod
 
+from dataclasses import dataclass
+
 import torch
 import numpy as np
 
+task_type = Literal[
+    "DelayedPro",
+    "DelayedAnti",
+    "MemoryPro",
+    "MemoryAnti",
+    "ReactPro",
+    "ReactAnti",
+    "IntegrationModality1",
+    "IntegrationModality2",
+    "ContextIntModality1",
+    "ContextIntModality2",
+    "IntegrationMultiModal",
+    "ReactMatch2Sample",
+    "ReactNonMatch2Sample",
+    "ReactCategoryPro",
+    "ReactCategoryAnti",
+]
 
+
+@dataclass(repr=False)
 class DelayedPro(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("DelayedPro", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("DelayedPro", self.batch_size, self.dt, self.gamma, self.rng)
 
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=300,
-            max_t=1500,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta, modality)
-        response = TaskPeriod(
-            "response",
-            self.name,
-            min_t=300,
-            max_t=1500,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        response.add_stimulus_values(theta, modality)
+        stim_kwargs = {"theta": theta, "modality": modality}
+
+        context = self.generate_task_period("context", 300, 700)
+        stim_1 = self.generate_task_period("stimulus1", 300, 1500, stim_kwargs)
+        response = self.generate_task_period("response", 300, 1500, stim_kwargs)
+
         self.set_task_periods([context, stim_1, response])
         self.set_z(theta)
 
     def set_z(self, theta: torch.Tensor) -> None:
         """Move to same angle as presented."""
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class DelayedAnti(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("DelayedAnti", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
 
+    def __post_init__(self) -> None:
+        super().__init__("DelayedAnti", self.batch_size, self.dt, self.gamma, self.rng)
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=300,
-            max_t=1500,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta, modality)
-        response = TaskPeriod(
-            "response",
-            self.name,
-            min_t=300,
-            max_t=1500,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        response.add_stimulus_values(theta, modality)
+        stimulus_kwargs = {"theta": theta, "modality": modality}
+
+        context = self.set_task_periods("context", 300, 700)
+        stim_1 = self.set_task_periods("stimulus1", 300, 1500, stimulus_kwargs)
+        response = self.set_task_periods("response", 300, 1500, stimulus_kwargs)
+
         self.set_task_periods([context, stim_1, response])
         self.set_z(theta)
 
@@ -106,122 +77,58 @@ class DelayedAnti(Task):
         """Move in opposite direction of angle presented."""
         theta += torch.pi
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class MemoryPro(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("MemoryPro", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("MemoryPro", self.batch_size, self.dt, self.gamma, self.rng)
 
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta, modality)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        response = TaskPeriod(
-            "response",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
+        stimulus_kwargs = {"theta": theta, "modality": modality}
+
+        context = self.generate_task_period("context", 300, 700)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        response = self.generate_task_period("response", 300, 700)
+
         self.set_task_periods([context, stim_1, memory_1, response])
         self.set_z(theta)
 
     def set_z(self, theta: torch.Tensor) -> None:
         """Move in same angle as presented after stimulus has faded."""
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class MemoryAnti(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("MemoryAnti", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("MemoryAnti", self.batch_size, self.dt, self.gamma, self.rng)
 
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta, modality)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        response = TaskPeriod(
-            "response",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
+        stimulus_kwargs = {"theta": theta, "modality": modality}
+
+        context = self.generate_task_period("context", 300, 700)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        response = self.generate_task_period("response", 300, 700)
+
         self.set_task_periods([context, stim_1, memory_1, response])
         self.set_z(theta)
 
@@ -229,45 +136,28 @@ class MemoryAnti(Task):
         """Move in opposite direction of stimulus after it has faded."""
         theta += torch.pi
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class ReactPro(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("ReactPro", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("ReactPro", self.batch_size, self.dt, self.gamma, self.rng)
 
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
+        stimulus_kwargs = {"theta": theta, "modality": modality}
 
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=500,
-            max_t=2500,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
+        context = self.generate_task_period("context", 500, 2500)
         # Response period as well, but react tasks have fixation = 1 even during response
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=300,
-            max_t=1700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta, modality)
+        stim_1 = self.generate_task_period("stimulus1", 300, 1700, stimulus_kwargs)
+
         self.set_task_periods([context, stim_1])
         self.set_z(theta)
 
@@ -275,45 +165,28 @@ class ReactPro(Task):
         """Move in direction of stimulus immediately. There is no change in fixation during
         the whole trial."""
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class ReactAnti(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("ReactAnti", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("ReactAnti", self.batch_size, self.dt, self.gamma, self.rng)
 
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
+        stimulus_kwargs = {"theta": theta, "modality": modality}
 
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=500,
-            max_t=2500,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
+        context = self.generate_task_period("context", 500, 2500)
         # Response period as well, but react tasks have fixation = 1 even during response
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=300,
-            max_t=1700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta, modality)
+        stim_1 = self.generate_task_period("stimulus1", 300, 1700, stimulus_kwargs)
+
         self.set_task_periods([context, stim_1])
         self.set_z(theta)
 
@@ -322,88 +195,40 @@ class ReactAnti(Task):
         the whole trial."""
         theta += torch.pi
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class IntegrationModality1(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("IntegrationModality1", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("IntegrationModality1", self.batch_size, self.dt, self.gamma, self.rng)
 
         # Using values from code
-        amp_mean = 0.4 * torch.rand((batch_size, 1)) + 0.8
-        amp_var = 1.6 * torch.rand((batch_size, 1)) - 0.8
+        amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
+        amp_var = 1.6 * torch.rand((self.batch_size, 1)) - 0.8
+
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
         theta_1 = self.generate_stimulus_batch()
         theta_2 = self.generate_stimulus_batch()
+        modality = torch.ones((self.batch_size,), dtype=int)
 
-        modality = torch.ones((batch_size,), dtype=int)
+        stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1}
+        stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2}
 
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=200,
-            max_t=600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta_1, modality, amp_1)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2 = TaskPeriod(
-            "stimulus2",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2.add_stimulus_values(theta_2, modality, amp_2)
-        memory_2 = TaskPeriod(
-            "memory2",
-            self.name,
-            min_t=100,
-            max_t=300,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        response = TaskPeriod(
-            "response",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
+        context = self.generate_task_period("context", 200, 600)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        stim_2 = self.generate_task_period("stimulus2", 200, 1600, stimulus2_kwargs)
+        memory_2 = self.generate_task_period("memory2", 100, 300)
+        response = self.generate_task_period("response", 300, 700)
+
         self.set_task_periods([context, stim_1, memory_1, stim_2, memory_2, response])
         self.set_z(theta_1, theta_2, amp_1, amp_2)
 
@@ -420,88 +245,40 @@ class IntegrationModality1(Task):
         theta = torch.cat((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start, :] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class IntegrationModality2(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("IntegrationModality2", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("IntegrationModality2", self.batch_size, self.dt, self.gamma, self.rng)
 
         # Using values from code
-        amp_mean = 0.4 * torch.rand((batch_size, 1)) + 0.8
-        amp_var = 1.6 * torch.rand((batch_size, 1)) - 0.8
+        amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
+        amp_var = 1.6 * torch.rand((self.batch_size, 1)) - 0.8
+
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
         theta_1 = self.generate_stimulus_batch()
         theta_2 = self.generate_stimulus_batch()
+        modality = torch.ones((self.batch_size,), dtype=int) * 2
 
-        modality = torch.ones((batch_size,), dtype=int) * 2
+        stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1}
+        stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2}
 
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=200,
-            max_t=600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta_1, modality, amp_1)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2 = TaskPeriod(
-            "stimulus2",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2.add_stimulus_values(theta_2, modality, amp_2)
-        memory_2 = TaskPeriod(
-            "memory2",
-            self.name,
-            min_t=100,
-            max_t=300,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        response = TaskPeriod(
-            "response",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
+        context = self.generate_task_period("context", 200, 600)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        stim_2 = self.generate_task_period("stimulus2", 200, 1600, stimulus2_kwargs)
+        memory_2 = self.generate_task_period("memory2", 100, 300)
+        response = self.generate_task_period("response", 300, 700)
+
         self.set_task_periods([context, stim_1, memory_1, stim_2, memory_2, response])
         self.set_z(theta_1, theta_2, amp_1, amp_2)
 
@@ -518,89 +295,41 @@ class IntegrationModality2(Task):
         theta = torch.cat((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class ContextIntModality1(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("ContextIntModality1", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("ContextIntModality1", self.batch_size, self.dt, self.gamma, self.rng)
 
         # Using values from code
         # matrix math means I can set both modalities at once
-        amp_mean = 0.4 * torch.rand((batch_size, 2)) + 0.8
-        amp_var = 1.6 * torch.rand((batch_size, 2)) - 0.8
+        amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
+        amp_var = 1.6 * torch.rand((self.batch_size, 2)) - 0.8
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
 
         # Generate both modalities at once
         theta_1 = self.generate_stimulus_batch(n_mod=2)
         theta_2 = self.generate_stimulus_batch(n_mod=2)
-        modality = torch.ones((batch_size,), dtype=int)
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=200,
-            max_t=600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta_1, modality, amp_1, n_mod=2)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2 = TaskPeriod(
-            "stimulus2",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2.add_stimulus_values(theta_2, modality, amp_2, n_mod=2)
-        memory_2 = TaskPeriod(
-            "memory2",
-            self.name,
-            min_t=100,
-            max_t=300,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        response = TaskPeriod(
-            "response",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
+        modality = torch.ones((self.batch_size,), dtype=int)
+        stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1}
+        stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2}
+
+        context = self.generate_task_period("context", 200, 600)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        stim_2 = self.generate_task_period("stimulus2", 200, 1600, stimulus2_kwargs)
+        memory_2 = self.generate_task_period("memory2", 100, 300)
+        response = self.generate_task_period("response", 300, 700)
+
         self.set_task_periods([context, stim_1, memory_1, stim_2, memory_2, response])
         self.set_z(theta_1, theta_2, amp_1, amp_2)
 
@@ -622,89 +351,40 @@ class ContextIntModality1(Task):
         theta = torch.stack((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class ContextIntModality2(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("ContextIntModality2", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("ContextIntModality2", self.batch_size, self.dt, self.gamma, self.rng)
 
         # Using values from code
-        amp_mean = 0.4 * torch.rand((batch_size, 2)) + 0.8
-        amp_var = 1.6 * torch.rand((batch_size, 2)) - 0.8
+        amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
+        amp_var = 1.6 * torch.rand((self.batch_size, 2)) - 0.8
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
 
         # Generate both modalities at once
         theta_1 = self.generate_stimulus_batch(n_mod=2)
         theta_2 = self.generate_stimulus_batch(n_mod=2)
-        modality = torch.ones((batch_size,), dtype=int)
+        modality = torch.ones((self.batch_size,), dtype=int)
+        stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1}
+        stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2}
 
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=200,
-            max_t=600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta_1, modality, amp_1, n_mod=2)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2 = TaskPeriod(
-            "stimulus2",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2.add_stimulus_values(theta_2, modality, amp_2, n_mod=2)
-        memory_2 = TaskPeriod(
-            "memory2",
-            self.name,
-            min_t=100,
-            max_t=300,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        response = TaskPeriod(
-            "response",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
+        context = self.generate_task_period("context", 200, 600)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        stim_2 = self.generate_task_period("stimulus2", 200, 1600, stimulus2_kwargs)
+        memory_2 = self.generate_task_period("memory2", 100, 300)
+        response = self.generate_task_period("response", 300, 700)
+
         self.set_task_periods([context, stim_1, memory_1, stim_2, memory_2, response])
         self.set_z(theta_1, theta_2, amp_1, amp_2)
 
@@ -727,89 +407,43 @@ class ContextIntModality2(Task):
         theta = torch.cat((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class IntegrationMultiModal(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("IntegrationMultiModal", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
 
-        # Using values from code
-        amp_mean = 0.4 * torch.rand((batch_size, 2)) + 0.8
-        amp_var = 1.6 * torch.rand((batch_size, 2)) - 0.8
+    def __post_init__(self) -> None:
+        super().__init__("IntegrationMultiModal", self.batch_size, self.dt, self.gamma, self.rng)
+
+        # Using values from paper code
+        amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
+        amp_var = 1.6 * torch.rand((self.batch_size, 2)) - 0.8
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
 
         # Generate both modalities at once
         theta_1 = self.generate_stimulus_batch(n_mod=2)
         theta_2 = self.generate_stimulus_batch(n_mod=2)
-        modality = torch.ones((batch_size,), dtype=int)
+        modality = torch.ones((self.batch_size,), dtype=int)
 
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=200,
-            max_t=600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta_1, modality, amp_1, n_mod=2)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2 = TaskPeriod(
-            "stimulus2",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2.add_stimulus_values(theta_2, modality, amp_2, n_mod=2)
-        memory_2 = TaskPeriod(
-            "memory2",
-            self.name,
-            min_t=100,
-            max_t=300,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        response = TaskPeriod(
-            "response",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
+        stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1, "n_mod": 2}
+        stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2, "n_mod": 2}
+
+        # Define task periods
+        context = self.generate_task_period("context", 200, 600)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        stim_2 = self.generate_task_period("stimulus2", 200, 1600, stimulus2_kwargs)
+        memory_2 = self.generate_task_period("memory2", 100, 300)
+        response = self.generate_task_period("response", 300, 700)
+
+        # Set inputs/outputs
         self.set_task_periods([context, stim_1, memory_1, stim_2, memory_2, response])
         self.set_z(theta_1, theta_2, amp_1, amp_2)
 
@@ -826,76 +460,47 @@ class IntegrationMultiModal(Task):
         theta_1 = theta_1.sum(dim=1).unsqueeze(1)
         theta_2 = theta_2.sum(dim=1).unsqueeze(1)
 
+        # Select the largest amplitude from each stimulus
         amp = torch.cat((amp_1, amp_2), dim=1)
         amp_idx = torch.argmax(amp, dim=1)
+
+        # Grab the stimulus angle indexed by largeset amplitude
         theta = torch.cat((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
+
+        # Set response period input/output
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat(
-            (torch.sin(theta), torch.cos(theta)), dim=1
-        )
+        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
+@dataclass(repr=False)
 class ReactMatch2Sample(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("ReactMatch2Sample", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("ReactMatch2Sample", self.batch_size, self.dt, self.gamma, self.rng)
 
         theta_1 = self.generate_stimulus_batch()
         # add minimum [pi/10, 2*pi - pi/10] to avoid falling within acceptable bound
         # Some of these will be set to be the same as the first stimulus randomly
-        offset = (2 * torch.pi - torch.pi / 5) * torch.rand(
-            (batch_size, 1)
-        ) + torch.pi / 10
-        theta_2 = theta_1 + offset * torch.randint(0, 2, (batch_size, 1))
+        offset = (2 * torch.pi - torch.pi / 5) * torch.rand((self.batch_size, 1)) + torch.pi / 10
+        theta_2 = theta_1 + offset * torch.randint(0, 2, (self.batch_size, 1))
 
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()
 
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=200,
-            max_t=600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta_1, mod_1)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2 = TaskPeriod(
-            "stimulus2",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2.add_stimulus_values(theta_2, mod_2)
+        stimulus1_kwargs = {"theta": theta_1, "modality": mod_1}
+        stimulus2_kwargs = {"theta": theta_2, "modality": mod_2}
+
+        context = self.generate_task_period("context", 200, 600)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        stim_2 = self.generate_task_period("stimulus2", 300, 700, stimulus2_kwargs)
+
         self.set_task_periods([context, stim_1, memory_1, stim_2])
         self.set_z(theta_1, theta_2)
 
@@ -908,65 +513,33 @@ class ReactMatch2Sample(Task):
         self.theta[response_start:] = theta_2.squeeze(1)
 
 
+@dataclass(repr=False)
 class ReactNonMatch2Sample(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("ReactNonMatch2Sample", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("ReactNonMatch2Sample", self.batch_size, self.dt, self.gamma, self.rng)
 
         theta_1 = self.generate_stimulus_batch()
         # add minimum [pi/10, 2*pi - pi/10] to avoid falling within acceptable bound
         # Some of these will be set to be the same as the first stimulus randomly
-        offset = (2 * torch.pi - torch.pi / 10) * torch.rand(
-            (batch_size, 1)
-        ) + torch.pi / 10
-        theta_2 = theta_1 + torch.pi + offset * torch.randint(0, 2, (batch_size, 1))
+        offset = (2 * torch.pi - torch.pi / 10) * torch.rand((self.batch_size, 1)) + torch.pi / 10
+        theta_2 = theta_1 + torch.pi + offset * torch.randint(0, 2, (self.batch_size, 1))
 
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()
 
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=200,
-            max_t=600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta_1, mod_1)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2 = TaskPeriod(
-            "stimulus2",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2.add_stimulus_values(theta_2, mod_2)
+        stimulus1_kwargs = {"theta": theta_1, "modality": mod_1}
+        stimulus2_kwargs = {"theta": theta_2, "modality": mod_2}
+
+        context = self.generate_task_period("context", 200, 600)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        stim_2 = self.generate_task_period("stimulus2", 300, 700, stimulus2_kwargs)
+
         self.set_task_periods([context, stim_1, memory_1, stim_2])
         self.set_z(theta_1, theta_2)
 
@@ -980,59 +553,29 @@ class ReactNonMatch2Sample(Task):
         self.theta[response_start:] = theta_2.squeeze(1)
 
 
+@dataclass(repr=False)
 class ReactCategoryPro(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("ReactCategoryPro", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("ReactCategoryPro", self.batch_size, self.dt, self.gamma, self.rng)
 
         theta_1 = self.generate_stimulus_batch()
         theta_2 = self.generate_stimulus_batch()
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()
 
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=200,
-            max_t=600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta_1, mod_1)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2 = TaskPeriod(
-            "stimulus2",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2.add_stimulus_values(theta_2, mod_2)
+        stimulus1_kwargs = {"theta": theta_1, "modality": mod_1}
+        stimulus2_kwargs = {"theta": theta_2, "modality": mod_2}
+
+        context = self.generate_task_period("context", 200, 600)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        stim_2 = self.generate_task_period("stimulus2", 300, 700, stimulus2_kwargs)
+
         self.set_task_periods([context, stim_1, memory_1, stim_2])
         self.set_z(theta_1, theta_2)
 
@@ -1048,59 +591,29 @@ class ReactCategoryPro(Task):
         self.theta[response_start:] = theta_2.squeeze(1)
 
 
+@dataclass(repr=False)
 class ReactCategoryAnti(Task):
-    def __init__(
-        self,
-        batch_size: int = 64,
-        dt: int = 20,
-        gamma: Optional[float] = None,
-        rng: Optional[torch.Generator] = None,
-    ) -> None:
-        super().__init__("ReactCategoryAnti", batch_size, dt, gamma, rng)
+    batch_size: int = 64
+    dt: int = 20
+    gamma: Optional[float] = None
+    rng: Optional[torch.Generator] = None
+
+    def __post_init__(self) -> None:
+        super().__init__("ReactCategoryAnti", self.batch_size, self.dt, self.gamma, self.rng)
 
         theta_1 = self.generate_stimulus_batch()
         theta_2 = self.generate_stimulus_batch()
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()
 
-        context = TaskPeriod(
-            "context",
-            self.name,
-            min_t=200,
-            max_t=600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1 = TaskPeriod(
-            "stimulus1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_1.add_stimulus_values(theta_1, mod_1)
-        memory_1 = TaskPeriod(
-            "memory1",
-            self.name,
-            min_t=200,
-            max_t=1600,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2 = TaskPeriod(
-            "stimulus2",
-            self.name,
-            min_t=300,
-            max_t=700,
-            dt=self.dt,
-            batch_size=self.batch_size,
-            rng=self.rng,
-        )
-        stim_2.add_stimulus_values(theta_2, mod_2)
+        stimulus1_kwargs = {"theta": theta_1, "modality": mod_1}
+        stimulus2_kwargs = {"theta": theta_2, "modality": mod_2}
+
+        context = self.generate_task_period("context", 200, 600)
+        stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
+        memory_1 = self.generate_task_period("memory1", 200, 1600)
+        stim_2 = self.generate_task_period("stimulus2", 300, 700, stimulus2_kwargs)
+
         self.set_task_periods([context, stim_1, memory_1, stim_2])
         self.set_z(theta_1, theta_2)
 
@@ -1115,23 +628,7 @@ class ReactCategoryAnti(Task):
         self.z[response_start:, :, 1:] = theta.squeeze(1)
         self.theta[response_start:] = theta_2.squeeze(1)
 
-task_type = Literal[
-            "DelayedPro",
-            "DelayedAnti",
-            "MemoryPro",
-            "MemoryAnti",
-            "ReactPro",
-            "ReactAnti",
-            "IntegrationModality1",
-            "IntegrationModality2",
-            "ContextIntModality1",
-            "ContextIntModality2",
-            "IntegrationMultiModal",
-            "ReactMatch2Sample",
-            "ReactNonMatch2Sample",
-            "ReactCategoryPro",
-            "ReactCategoryAnti",
-        ]
+
 def init(task_name: task_type, **kwargs: dict) -> Task:
     """Initialize a task by name
 
@@ -1168,7 +665,8 @@ def init(task_name: task_type, **kwargs: dict) -> Task:
     return task_obj
 
 
-def task_generator(task_list: Optional[list[Task]] = None, kwargs: dict = {}) -> Task:
+# TODO: Fix the docstring
+def task_generator(n_tasks: int, task_list: Optional[list[Task]] = None, kwargs: dict = {}):
     """Randomly picks a task.
 
     Parameters
@@ -1184,9 +682,10 @@ def task_generator(task_list: Optional[list[Task]] = None, kwargs: dict = {}) ->
     task
         A randomly chosen task.
     """
-    # if task_list is None:
-        
-    
-    # task_object = task_dict[task_list[np.random.randint(0, len(task_list))]]
-    # task = task_object(**kwargs)
-    # return task
+    # Maybe I just vectorize this
+    i = 0
+    while i < n_tasks:
+        rand_task_name = task_list[np.random.randint(0, len(task_list))]
+        task = init(rand_task_name, **kwargs)
+        yield task
+        i += 1

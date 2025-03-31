@@ -22,9 +22,7 @@ TASK_VECTOR_DEFINITION = [
     "ReactCategoryAnti",
 ]
 
-period_name_type = Literal[
-    "context", "stimulus1", "stimulus2", "memory1", "memory2", "response"
-]
+period_name_type = Literal["context", "stimulus1", "stimulus2", "memory1", "memory2", "response"]
 
 
 class TaskPeriod:
@@ -67,9 +65,7 @@ class TaskPeriod:
         self.rng = rng
 
         # Gets an int instead of int-typed Tuple
-        self.n_steps = (
-            (torch.randint(min_t, max_t, (1,), generator=rng) / dt).int().item()
-        )
+        self.n_steps = (torch.randint(min_t, max_t, (1,), generator=rng) / dt).int().item()
         fixation = 0 if period_name == "response" else 1
 
         self.input_array = torch.zeros((self.n_steps, batch_size, 20))
@@ -81,7 +77,7 @@ class TaskPeriod:
     def __repr__(self):
         return f"{self.period_name} | n_steps: {self.n_steps}"
 
-    def add_stimulus_values(
+    def set_stimulus_values(
         self,
         theta: torch.Tensor,
         modality: torch.Tensor,
@@ -110,9 +106,7 @@ class TaskPeriod:
         offset = n_mod * 2
         # gotta do this to set for each sample in batch
         # Modalities start at 1, assuming only 2 values possible
-        stim_vals = torch.cat(
-            (amplitude * torch.sin(theta), amplitude * torch.cos(theta)), dim=1
-        )
+        stim_vals = torch.cat((amplitude * torch.sin(theta), amplitude * torch.cos(theta)), dim=1)
         for i in range(self.input_array.shape[1]):
             self.input_array[:, i, mod_idx[i] : mod_idx[i] + offset] = stim_vals[i, :]
 
@@ -160,7 +154,10 @@ class Task:
         self.theta = None
 
     def __repr__(self):
-        return f"{self.name} | n_steps: {self.n_steps}"
+        name_str = f"{self.name} - batch_size: {self.batch_size} - n_steps: {self.n_steps}\n"
+        for task_period in self.task_periods:
+            name_str += f"{task_period}\n"
+        return name_str
 
     def generate_stimulus_batch(self, n_mod=1) -> torch.Tensor:
         """Create a batch of angles in radians as an input for a task period.
@@ -248,9 +245,7 @@ class Task:
         task_input_array
             The input array for the task. Takes shape (T, batch_size, 20).
         """
-        task_input_array = torch.cat(
-            [period.input_array for period in self.task_periods], dim=0
-        )
+        task_input_array = torch.cat([period.input_array for period in self.task_periods], dim=0)
         if self.gamma is not None:
             task_input_array += (
                 torch.randn(task_input_array.size(), generator=self.rng)
@@ -295,3 +290,44 @@ class Task:
             for period in self.task_periods
         }
         return time_spans
+
+    def generate_task_period(
+        self,
+        period_name: str,
+        min_t: int,
+        max_t: int,
+        stimulus_kwargs: Optional[dict] = None,
+    ) -> TaskPeriod:
+        """Instantiate a TaskPeriod object to add to ``task_periods``.
+
+        This helps get rid of some boilerplates. Once a set of task_periods are created,
+        use ``add_task_periods`` to add them back to this object and instantiate the inputs/outputs
+
+        Parameters
+        ----------
+        period_name
+            Name of the `TaskPeriod`. Certain periods have specific properties.
+        min_t
+            Minimum bound for randomly generated time span.
+        max_t
+            Maximum bound for randomly generated time span.
+        stimulus_kwargs: Named arguments for creating inputs/outputs for the stimulus time periods.
+
+        Returns
+        -------
+        task_period
+            The instantiated TaskPeriod object
+        """
+        task_period = TaskPeriod(
+            period_name,
+            self.name,
+            min_t=min_t,
+            max_t=max_t,
+            dt=self.dt,
+            batch_size=self.batch_size,
+            rng=self.rng,
+        )
+        if stimulus_kwargs is not None:
+            task_period.add_stimulus_values(**stimulus_kwargs)
+
+        return task_period
