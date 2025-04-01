@@ -1,13 +1,14 @@
 from typing import Union
 from task_data.tasks import Task
 
-from .network import MotifNetwork
-from .train import train
-from .utils import load_config
+from ..network import MotifNetwork
+from ..train import train
+from ..utils import load_config
+
+# from ..task_data.task_init import MotifTaskLoader
 
 import torch
 
-import pickle
 import logging
 
 # from FixedPointFinder.FixedPointFinderTorch import (

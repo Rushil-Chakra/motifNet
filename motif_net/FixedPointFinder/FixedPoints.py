@@ -1,79 +1,78 @@
-'''
+"""
 FixedPoints Class
 Supports FixedPointFinder
 
 Written for Python 3.8.17
 @ Matt Golub, October 2018
 
-If you are using FixedPointFinder in research to be published, 
+If you are using FixedPointFinder in research to be published,
 please cite our accompanying paper in your publication:
 
-Golub and Sussillo (2018), "FixedPointFinder: A Tensorflow toolbox for 
-identifying and characterizing fixed points in recurrent neural networks," 
+Golub and Sussillo (2018), "FixedPointFinder: A Tensorflow toolbox for
+identifying and characterizing fixed points in recurrent neural networks,"
 Journal of Open Source Software, 3(31), 1003.
 https://doi.org/10.21105/joss.01003
 
 Please direct correspondence to mgolub@cs.washington.edu
-'''
+"""
 
 import pdb
 import numpy as np
 import pickle
 
-class FixedPoints(object):
-    '''
-    A class for storing fixed points and associated data.
-    '''
 
-    ''' List of class attributes that represent data corresponding to fixed
+class FixedPoints(object):
+    """
+    A class for storing fixed points and associated data.
+    """
+
+    """ List of class attributes that represent data corresponding to fixed
     points. All of these refer to Numpy arrays with axis 0 as the batch
     dimension. Thus, each is concatenatable using np.concatenate(..., axis=0).
-    '''
+    """
     _data_attrs = [
-            'xstar',
-            'x_init',
-            'inputs',
-            'F_xstar',
-            'qstar',
-            'dq',
-            'n_iters',
-            'J_xstar',
-            'eigval_J_xstar',
-            'eigvec_J_xstar',
-            'is_stable',
-            'cond_id']
+        "xstar",
+        "x_init",
+        "inputs",
+        "F_xstar",
+        "qstar",
+        "dq",
+        "n_iters",
+        "J_xstar",
+        "eigval_J_xstar",
+        "eigvec_J_xstar",
+        "is_stable",
+        "cond_id",
+    ]
 
-    ''' List of class attributes that apply to all fixed points
-    (i.e., these are not indexed per fixed point). '''
-    _nonspecific_attrs = [
-        'dtype',
-        'dtype_complex',
-        'tol_unique',
-        'verbose',
-        'do_alloc_nan']
+    """ List of class attributes that apply to all fixed points
+    (i.e., these are not indexed per fixed point). """
+    _nonspecific_attrs = ["dtype", "dtype_complex", "tol_unique", "verbose", "do_alloc_nan"]
 
-    def __init__(self,
-                 xstar=None, # Fixed-point specific data
-                 x_init=None,
-                 inputs=None,
-                 F_xstar=None,
-                 qstar=None,
-                 dq=None,
-                 n_iters=None,
-                 J_xstar=None,
-                 eigval_J_xstar=None,
-                 eigvec_J_xstar=None,
-                 is_stable=None,
-                 cond_id=None,
-                 n=None,
-                 n_states=None,
-                 n_inputs=None, # Non-specific data
-                 do_alloc_nan=False,
-                 tol_unique=1e-3,
-                 dtype=np.float32,
-                 dtype_complex=np.complex64,
-                 verbose=False):
-        '''
+    def __init__(
+        self,
+        xstar=None,  # Fixed-point specific data
+        x_init=None,
+        inputs=None,
+        F_xstar=None,
+        qstar=None,
+        dq=None,
+        n_iters=None,
+        J_xstar=None,
+        eigval_J_xstar=None,
+        eigvec_J_xstar=None,
+        is_stable=None,
+        cond_id=None,
+        n=None,
+        n_states=None,
+        n_inputs=None,  # Non-specific data
+        do_alloc_nan=False,
+        tol_unique=1e-3,
+        dtype=np.float32,
+        dtype_complex=np.complex64,
+        verbose=False,
+    ):
+        """
         Initializes a FixedPoints object with all input arguments as class
         properties.
 
@@ -172,7 +171,7 @@ class FixedPoints(object):
         Returns:
             None.
 
-        '''
+        """
 
         # These apply to all fixed points
         # (one value each, rather than one value per fixed point).
@@ -185,14 +184,11 @@ class FixedPoints(object):
         if do_alloc_nan:
 
             if n is None:
-                raise ValueError('n must be provided if '
-                                 'do_alloc_nan == True.')
+                raise ValueError("n must be provided if " "do_alloc_nan == True.")
             if n_states is None:
-                raise ValueError('n_states must be provided if '
-                                 'do_alloc_nan == True.')
+                raise ValueError("n_states must be provided if " "do_alloc_nan == True.")
             if n_inputs is None:
-                raise ValueError('n_inputs must be provided if '
-                                 'do_alloc_nan == True.')
+                raise ValueError("n_inputs must be provided if " "do_alloc_nan == True.")
 
             self.n = n
             self.n_states = n_states
@@ -207,10 +203,8 @@ class FixedPoints(object):
             self.n_iters = self._alloc_nan((n))
             self.J_xstar = self._alloc_nan((n, n_states, n_states))
 
-            self.eigval_J_xstar = self._alloc_nan(
-                (n, n_states), dtype=dtype_complex)
-            self.eigvec_J_xstar = self._alloc_nan(
-                (n, n_states, n_states), dtype=dtype_complex)
+            self.eigval_J_xstar = self._alloc_nan((n, n_states), dtype=dtype_complex)
+            self.eigvec_J_xstar = self._alloc_nan((n, n_states, n_states), dtype=dtype_complex)
 
             # not forcing dtype to bool yet, since np.bool(np.nan) is True,
             # which could be misinterpreted as a valid value.
@@ -254,23 +248,24 @@ class FixedPoints(object):
         self.assert_valid_shapes()
 
     def __setitem__(self, index, fps):
-        '''Implements the assignment operator.
+        """Implements the assignment operator.
 
         All compatible data from fps are copied. This excludes tol_unique,
         dtype, n, n_states, and n_inputs, which retain their original values.
 
         Usage:
             fps_to_be_partially_overwritten[index] = fps
-        '''
+        """
 
-        assert isinstance(fps, FixedPoints),\
-            ('fps must be a FixedPoints object but was %s.' % type(fps))
+        assert isinstance(fps, FixedPoints), "fps must be a FixedPoints object but was %s." % type(
+            fps
+        )
 
         if isinstance(index, int):
             # Force the indexing that follows to preserve numpy array ndim
-            index = list(range(index, index+1))
+            index = list(range(index, index + 1))
 
-        manual_data_attrs = ['eigval_J_xstar', 'eigvec_J_xstar', 'is_stable']
+        manual_data_attrs = ["eigval_J_xstar", "eigvec_J_xstar", "is_stable"]
 
         # This block added for testing 9/17/20 (replaces commented code below)
         for attr_name in self._data_attrs:
@@ -279,7 +274,7 @@ class FixedPoints(object):
                 if attr is not None:
                     attr[index] = getattr(fps, attr_name)
 
-        ''' Previous version of block above:
+        """ Previous version of block above:
 
         if self.xstar is not None:
             self.xstar[index] = fps.xstar
@@ -301,7 +296,7 @@ class FixedPoints(object):
 
         if self.J_xstar is not None:
             self.J_xstar[index] = fps.J_xstar
-        '''
+        """
 
         # This manual handling no longer seems necessary, but I'll save that
         # change and testing for a rainy day.
@@ -311,7 +306,7 @@ class FixedPoints(object):
             self.is_stable[index] = fps.is_stable
 
     def __getitem__(self, index):
-        '''Indexes into a subset of the fixed points and their associated data.
+        """Indexes into a subset of the fixed points and their associated data.
 
         Usage:
             fps_subset = fps[index]
@@ -322,14 +317,14 @@ class FixedPoints(object):
         Returns:
             A FixedPoints object containing a subset of the data from the
             current FixedPoints object, as specified by index.
-        '''
+        """
 
         if isinstance(index, int):
             # Force the indexing that follows to preserve numpy array ndim
-            index = list(range(index, index+1))
+            index = list(range(index, index + 1))
 
         kwargs = self._nonspecific_kwargs
-        manual_data_attrs = ['eigval_J_xstar', 'eigvec_J_xstar', 'is_stable']
+        manual_data_attrs = ["eigval_J_xstar", "eigvec_J_xstar", "is_stable"]
 
         for attr_name in self._data_attrs:
 
@@ -352,25 +347,25 @@ class FixedPoints(object):
         return indexed_fps
 
     def __len__(self):
-        '''Returns the number of fixed points stored in the object.'''
+        """Returns the number of fixed points stored in the object."""
         return self.n
 
     def __contains__(self, fp):
-        '''Checks whether a specified fixed point is contained in the object.
+        """Checks whether a specified fixed point is contained in the object.
 
         Args:
             fp: A FixedPoints object containing exactly one fixed point.
 
         Returns:
             bool indicating whether any fixed point matches fp.
-        '''
+        """
 
         idx = self.find(fp)
 
         return idx.size > 0
 
     def get_unique(self):
-        '''Identifies unique fixed points. Among duplicates identified,
+        """Identifies unique fixed points. Among duplicates identified,
         this keeps the one with smallest qstar.
 
         Args:
@@ -379,9 +374,10 @@ class FixedPoints(object):
         Returns:
             A FixedPoints object containing only the unique fixed points and
             their associated data. Uniqueness is determined down to tol_unique.
-        '''
-        assert (self.xstar is not None),\
-            ('Cannot find unique fixed points because self.xstar is None.')
+        """
+        assert (
+            self.xstar is not None
+        ), "Cannot find unique fixed points because self.xstar is None."
 
         if self.inputs is None:
             data_nxd = self.xstar
@@ -400,11 +396,11 @@ class FixedPoints(object):
 
             # Don't compare against FPs we've already checked
             idx_check = np.where(~idx_checked)[0]
-            fps_check = self[idx_check] # only check against these FPs
-            idx_idx_check = fps_check.find(self[idx]) # indexes into fps_check
-            idx_match = idx_check[idx_idx_check] # indexes into self
+            fps_check = self[idx_check]  # only check against these FPs
+            idx_idx_check = fps_check.find(self[idx])  # indexes into fps_check
+            idx_match = idx_check[idx_idx_check]  # indexes into self
 
-            if len(idx_match)==1:
+            if len(idx_match) == 1:
                 # Only matches with itself
                 idx_keep.append(idx)
             else:
@@ -415,8 +411,8 @@ class FixedPoints(object):
 
         return self[idx_keep]
 
-    def transform(self, U, offset=0.):
-        ''' Apply an affine transformation to the state-space representation.
+    def transform(self, U, offset=0.0):
+        """Apply an affine transformation to the state-space representation.
         This may be helpful for plotting fixed points in a given linear
         subspace (e.g., PCA or an RNN readout space).
 
@@ -428,24 +424,23 @@ class FixedPoints(object):
 
         Returns:
             A FixedPoints object.
-        '''
+        """
         kwargs = self.kwargs
 
         # These are all transformed. All others are not.
-        for attr_name in ['xstar', 'x_init', 'F_xstar']:
+        for attr_name in ["xstar", "x_init", "F_xstar"]:
             kwargs[attr_name] = np.matmul(getattr(self, attr_name), U) + offset
 
         if self.has_decomposed_jacobians:
-            kwargs['eigval_J_xstar'] = self.eigval_J_xstar
-            kwargs['eigvec_J_xstar'] = \
-                np.matmul(U.T, self.eigvec_J_xstar) + offset
+            kwargs["eigval_J_xstar"] = self.eigval_J_xstar
+            kwargs["eigvec_J_xstar"] = np.matmul(U.T, self.eigvec_J_xstar) + offset
 
         transformed_fps = FixedPoints(**kwargs)
 
         return transformed_fps
 
     def find(self, fp):
-        '''Searches in the current FixedPoints object for matches to a
+        """Searches in the current FixedPoints object for matches to a
         specified fixed point. Two fixed points are defined as matching
         if the 2-norm of the difference between their concatenated (xstar,
         inputs) is within tol_unique).
@@ -456,7 +451,7 @@ class FixedPoints(object):
         Returns:
             shape (n_matches,) numpy array specifying indices into the current
             FixedPoints object where matches to fp were found.
-        '''
+        """
 
         # If not found or comparison is impossible (due to type or shape),
         # follow convention of np.where and return an empty numpy array.
@@ -469,20 +464,17 @@ class FixedPoints(object):
                     self_data_nxd = self.xstar
                     arg_data_nxd = fp.xstar
                 else:
-                    self_data_nxd = np.concatenate(
-                        (self.xstar, self.inputs), axis=1)
-                    arg_data_nxd = np.concatenate(
-                        (fp.xstar, fp.inputs), axis=1)
+                    self_data_nxd = np.concatenate((self.xstar, self.inputs), axis=1)
+                    arg_data_nxd = np.concatenate((fp.xstar, fp.inputs), axis=1)
 
-                norm_diffs_n = np.linalg.norm(
-                    self_data_nxd - arg_data_nxd, axis=1)
+                norm_diffs_n = np.linalg.norm(self_data_nxd - arg_data_nxd, axis=1)
 
                 result = np.where(norm_diffs_n <= self.tol_unique)[0]
 
         return result
 
     def update(self, new_fps):
-        ''' Combines the entries from another FixedPoints object into this
+        """Combines the entries from another FixedPoints object into this
         object.
 
         Args:
@@ -500,7 +492,7 @@ class FixedPoints(object):
             FixedPoints objects (especially relevant for decomposed Jacobians).
 
             AssertionError if the updated object has inconsistent data shapes.
-        '''
+        """
 
         self._assert_matching_nonspecific_attrs(self, new_fps)
 
@@ -509,23 +501,23 @@ class FixedPoints(object):
             this_has = hasattr(self, attr_name)
             that_has = hasattr(new_fps, attr_name)
 
-            assert this_has == that_has,\
-                ('One but not both FixedPoints objects have %s. '
-                 'FixedPoints.update does not currently support this '
-                 'configuration.' % attr_name)
+            assert this_has == that_has, (
+                "One but not both FixedPoints objects have %s. "
+                "FixedPoints.update does not currently support this "
+                "configuration." % attr_name
+            )
 
             if this_has and that_has:
                 cat_attr = np.concatenate(
-                    (getattr(self, attr_name),
-                    getattr(new_fps, attr_name)),
-                    axis=0)
+                    (getattr(self, attr_name), getattr(new_fps, attr_name)), axis=0
+                )
                 setattr(self, attr_name, cat_attr)
 
         self.n = self.n + new_fps.n
         self.assert_valid_shapes()
 
-    def decompose_jacobians(self, do_batch=True, str_prefix=''):
-        '''Adds the following fields to the FixedPoints object:
+    def decompose_jacobians(self, do_batch=True, str_prefix=""):
+        """Adds the following fields to the FixedPoints object:
 
         eigval_J_xstar: [n x n_states] numpy array with eigval_J_xstar[i, :]
         containing the eigenvalues of J_xstar[i, :, :].
@@ -545,22 +537,21 @@ class FixedPoints(object):
 
         Returns:
             None.
-        '''
+        """
 
         if self.has_decomposed_jacobians:
-            print('%sJacobians have already been decomposed, '
-                'not repeating.' % str_prefix)
+            print("%sJacobians have already been decomposed, " "not repeating." % str_prefix)
             return
 
-        n = self.n # number of FPs represented in this object
-        n_states = self.n_states # dimensionality of each state
+        n = self.n  # number of FPs represented in this object
+        n_states = self.n_states  # dimensionality of each state
 
         if do_batch:
             # Batch eigendecomposition
-            print('%sDecomposing Jacobians in a single batch.' % str_prefix)
+            print("%sDecomposing Jacobians in a single batch." % str_prefix)
 
             # Check for NaNs in Jacobians
-            valid_J_idx = ~np.any(np.isnan(self.J_xstar), axis=(1,2))
+            valid_J_idx = ~np.any(np.isnan(self.J_xstar), axis=(1, 2))
 
             if np.all(valid_J_idx):
                 # No NaNs, nothing to worry about.
@@ -568,16 +559,15 @@ class FixedPoints(object):
             else:
                 # Set eigen-data to NaN if there are any NaNs in the
                 # corresponding Jacobian.
-                e_vals_unsrt = self._alloc_nan(
-                    (n, n_states), dtype=self.dtype_complex)
-                e_vecs_unsrt = self._alloc_nan(
-                    (n, n_states, n_states), dtype=dtype_complex)
+                e_vals_unsrt = self._alloc_nan((n, n_states), dtype=self.dtype_complex)
+                e_vecs_unsrt = self._alloc_nan((n, n_states, n_states), dtype=dtype_complex)
 
-                e_vals_unsrt[valid_J_idx], e_vecs_unsrt[valid_J_idx] = \
-                    np.linalg.eig(self.J_xstar[valid_J_idx])
+                e_vals_unsrt[valid_J_idx], e_vecs_unsrt[valid_J_idx] = np.linalg.eig(
+                    self.J_xstar[valid_J_idx]
+                )
 
         else:
-            print('%sDecomposing Jacobians one-at-a-time.' % str_prefix)
+            print("%sDecomposing Jacobians one-at-a-time." % str_prefix)
             e_vals = []
             e_vecs = []
             for J in self.J_xstar:
@@ -594,18 +584,16 @@ class FixedPoints(object):
             e_vals_unsrt = np.concatenate(e_vals, axis=0)
             e_vecs_unsrt = np.concatenate(e_vecs, axis=0)
 
-        print('%sSorting by Eigenvalue magnitude.' % str_prefix)
+        print("%sSorting by Eigenvalue magnitude." % str_prefix)
         # For each FP, sort eigenvectors by eigenvalue magnitude
         # (decreasing order).
-        mags_unsrt = np.abs(e_vals_unsrt) # shape (n,)
-        sort_idx = np.argsort(mags_unsrt)[:,::-1]
+        mags_unsrt = np.abs(e_vals_unsrt)  # shape (n,)
+        sort_idx = np.argsort(mags_unsrt)[:, ::-1]
 
         # Apply the sort
         # There must be a faster way, but I'm too lazy to find it at the moment
-        self.eigval_J_xstar = \
-            self._alloc_nan((n, n_states), dtype=self.dtype_complex)
-        self.eigvec_J_xstar = \
-            self._alloc_nan((n, n_states, n_states), dtype=self.dtype_complex)
+        self.eigval_J_xstar = self._alloc_nan((n, n_states), dtype=self.dtype_complex)
+        self.eigvec_J_xstar = self._alloc_nan((n, n_states, n_states), dtype=self.dtype_complex)
         self.is_stable = np.zeros(n, dtype=bool)
 
         for k in range(n):
@@ -621,7 +609,7 @@ class FixedPoints(object):
         self.assert_valid_shapes()
 
     def save(self, save_path):
-        '''Saves all data contained in the FixedPoints object.
+        """Saves all data contained in the FixedPoints object.
 
         Args:
             save_path: A string containing the path at which to save
@@ -629,18 +617,18 @@ class FixedPoints(object):
 
         Returns:
             None.
-        '''
+        """
         if self.verbose:
-            print('Saving FixedPoints object.')
+            print("Saving FixedPoints object.")
 
         self.assert_valid_shapes()
 
-        file = open(save_path,'wb')
+        file = open(save_path, "wb")
         file.write(pickle.dumps(self.__dict__))
         file.close()
 
     def restore(self, restore_path):
-        '''Restores data from a previously saved FixedPoints object.
+        """Restores data from a previously saved FixedPoints object.
 
         Args:
             restore_path: A string containing the path at which to find a
@@ -649,26 +637,24 @@ class FixedPoints(object):
 
         Returns:
             None.
-        '''
+        """
         if self.verbose:
-            print('Restoring FixedPoints object.')
-        file = open(restore_path,'rb')
+            print("Restoring FixedPoints object.")
+        file = open(restore_path, "rb")
         restore_data = file.read()
         file.close()
         self.__dict__ = pickle.loads(restore_data)
 
         # Hacks to bridge between different versions of saved data
-        if not hasattr(self, 'do_alloc_nan'):
+        if not hasattr(self, "do_alloc_nan"):
             self.do_alloc_nan = False
 
-        if not hasattr(self, 'eigval_J_xstar'):
+        if not hasattr(self, "eigval_J_xstar"):
             n = self.n
             n_states = self.n_states
             dtype_complex = np.complex64
-            self.eigval_J_xstar = self._alloc_nan(
-                (n, n_states), dtype=dtype_complex)
-            self.eigvec_J_xstar = self._alloc_nan(
-                (n, n_states, n_states), dtype=dtype_complex)
+            self.eigval_J_xstar = self._alloc_nan((n, n_states), dtype=dtype_complex)
+            self.eigvec_J_xstar = self._alloc_nan((n, n_states, n_states), dtype=dtype_complex)
 
             self.is_stable = self._alloc_nan((n))
 
@@ -677,70 +663,73 @@ class FixedPoints(object):
         self.assert_valid_shapes()
 
     def print_summary(self):
-        '''Prints a summary of the fixed points.
+        """Prints a summary of the fixed points.
 
         Args:
             None.
 
         Returns:
             None.
-        '''
+        """
 
-        print('\nThe q function at the fixed points:')
+        print("\nThe q function at the fixed points:")
         print(self.qstar)
 
-        print('\nChange in the q function from the final iteration '
-              'of each optimization:')
+        print("\nChange in the q function from the final iteration " "of each optimization:")
         print(self.dq)
 
-        print('\nNumber of iterations completed for each optimization:')
+        print("\nNumber of iterations completed for each optimization:")
         print(self.n_iters)
 
-        print('\nThe fixed points:')
+        print("\nThe fixed points:")
         print(self.xstar)
 
-        print('\nThe fixed points after one state transition:')
+        print("\nThe fixed points after one state transition:")
         print(self.F_xstar)
-        print('(these should be very close to the fixed points)')
+        print("(these should be very close to the fixed points)")
 
         if self.J_xstar is not None:
-            print('\nThe Jacobians at the fixed points:')
+            print("\nThe Jacobians at the fixed points:")
             print(self.J_xstar)
 
     def print_shapes(self):
-        ''' Prints the shapes of the data attributes of the fixed points.
+        """Prints the shapes of the data attributes of the fixed points.
 
         Args:
             None.
 
         Returns:
             None.
-        '''
+        """
 
         for attr_name in FixedPoints._data_attrs:
             attr = getattr(self, attr_name)
-            print('%s: %s' % (attr_name, str(attr.shape)))
+            print("%s: %s" % (attr_name, str(attr.shape)))
 
     def assert_valid_shapes(self):
-        ''' Checks that all data attributes reflect the same number of fixed
+        """Checks that all data attributes reflect the same number of fixed
         points.
 
         Raises:
             AssertionError if any non-None data attribute does not have
             .shape[0] as self.n.
-        '''
+        """
         n = self.n
         for attr_name in FixedPoints._data_attrs:
             data = getattr(self, attr_name)
             if data is not None:
-                assert data.shape[0] == self.n,\
-                    ('Detected %d fixed points, but %s.shape is %s '
-                    '(shape[0] should be %d' %
-                    (n, attr_name, str(data.shape), n))
+                assert (
+                    data.shape[0] == self.n
+                ), "Detected %d fixed points, but %s.shape is %s " "(shape[0] should be %d" % (
+                    n,
+                    attr_name,
+                    str(data.shape),
+                    n,
+                )
 
     @staticmethod
     def concatenate(fps_seq):
-        ''' Join a sequence of FixedPoints objects.
+        """Join a sequence of FixedPoints objects.
 
         Args:
             fps_seq: sequence of FixedPoints objects. All FixedPoints objects
@@ -751,9 +740,9 @@ class FixedPoints(object):
 
         Returns:
             A FixedPoints objects containing the concatenated FixedPoints data.
-        '''
+        """
 
-        assert len(fps_seq) > 0, 'Cannot concatenate empty list.'
+        assert len(fps_seq) > 0, "Cannot concatenate empty list."
         FixedPoints._assert_matching_nonspecific_attrs(fps_seq)
 
         kwargs = {}
@@ -789,18 +778,18 @@ class FixedPoints(object):
     @property
     def has_decomposed_jacobians(self):
 
-        if not hasattr(self, 'eigval_J_xstar'):
+        if not hasattr(self, "eigval_J_xstar"):
             return False
 
         return self.eigval_J_xstar is not None
 
     @property
     def kwargs(self):
-        ''' Returns dict of keyword arguments necessary for reinstantiating a
+        """Returns dict of keyword arguments necessary for reinstantiating a
         (shallow) copy of this FixedPoints object, i.e.,
 
         fp_copy  = FixedPoints(**fp.kwargs)
-        '''
+        """
 
         kwargs = self._nonspecific_kwargs
 
@@ -810,7 +799,7 @@ class FixedPoints(object):
         return kwargs
 
     def _alloc_nan(self, shape, dtype=None):
-        '''Returns a nan-filled numpy array.
+        """Returns a nan-filled numpy array.
 
         Args:
             shape: int or tuple representing the shape of the desired numpy
@@ -819,7 +808,7 @@ class FixedPoints(object):
         Returns:
             numpy array with the desired shape, filled with NaNs.
 
-        '''
+        """
         if dtype is None:
             dtype = self.dtype
 
@@ -833,14 +822,17 @@ class FixedPoints(object):
         for attr_name in FixedPoints._nonspecific_attrs:
             items = [getattr(fps, attr_name) for fps in fps_seq]
             for item in items:
-                assert item == items[0],\
-                    ('Cannot concatenate FixedPoints because of mismatched %s '
-                     '(%s is not %s)' %
-                     (attr_name, str(items[0]), str(item)))
+                assert (
+                    item == items[0]
+                ), "Cannot concatenate FixedPoints because of mismatched %s " "(%s is not %s)" % (
+                    attr_name,
+                    str(items[0]),
+                    str(item),
+                )
 
     @staticmethod
     def _safe_index(x, idx):
-        '''Safe method for indexing into a numpy array that might be None.
+        """Safe method for indexing into a numpy array that might be None.
 
         Args:
             x: Either None or a numpy array.
@@ -850,7 +842,7 @@ class FixedPoints(object):
         Returns:
             Self explanatory.
 
-        '''
+        """
         if x is None:
             return None
         else:
@@ -860,7 +852,4 @@ class FixedPoints(object):
     def _nonspecific_kwargs(self):
         # These are not specific to individual fixed points.
         # Thus, simple copy, no indexing required
-        return {
-            'dtype': self.dtype,
-            'tol_unique': self.tol_unique
-            }
+        return {"dtype": self.dtype, "tol_unique": self.tol_unique}

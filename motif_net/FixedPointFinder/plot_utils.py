@@ -1,10 +1,10 @@
-'''
+"""
 plot_utils.py
 Supports FixedPointFinder
 Written for Python 3.8.17
 @ Matt Golub, October 2018
 Please direct correspondence to mgolub@cs.washington.edu
-'''
+"""
 
 import numpy as np
 import pdb
@@ -13,15 +13,17 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-def plot_fps(fps,
+
+def plot_fps(
+    fps,
     state_traj=None,
     plot_batch_idx=None,
     plot_start_time=0,
     plot_stop_time=None,
     mode_scale=0.25,
-    fig=None):
-
-    '''Plots a visualization and analysis of the unique fixed points.
+    fig=None,
+):
+    """Plots a visualization and analysis of the unique fixed points.
 
     1) Finds a low-dimensional subspace for visualization via PCA. If
     state_traj is provided, PCA is fit to [all of] those RNN state
@@ -70,17 +72,16 @@ def plot_fps(fps,
 
     Returns:
         None.
-    '''
+    """
 
-    FONT_WEIGHT = 'bold'
+    FONT_WEIGHT = "bold"
     if fig is None:
-        FIG_WIDTH = 6 # inches
-        FIG_HEIGHT = 6 # inches
-        fig = plt.figure(figsize=(FIG_WIDTH, FIG_HEIGHT),
-            tight_layout=True)
+        FIG_WIDTH = 6  # inches
+        FIG_HEIGHT = 6  # inches
+        fig = plt.figure(figsize=(FIG_WIDTH, FIG_HEIGHT), tight_layout=True)
 
     if state_traj is not None:
-        
+
         state_traj_bxtxd = state_traj
         [n_batch, n_time, n_states] = state_traj_bxtxd.shape
 
@@ -102,16 +103,15 @@ def plot_fps(fps,
         pca = PCA(n_components=3)
 
         if state_traj is not None:
-            state_traj_btxd = np.reshape(state_traj_bxtxd,
-                (n_batch*n_time, n_states))
+            state_traj_btxd = np.reshape(state_traj_bxtxd, (n_batch * n_time, n_states))
             pca.fit(state_traj_btxd)
         else:
             pca.fit(fps.xstar)
 
-        ax = fig.add_subplot(111, projection='3d')
-        ax.set_xlabel('PC 1', fontweight=FONT_WEIGHT)
-        ax.set_zlabel('PC 3', fontweight=FONT_WEIGHT)
-        ax.set_ylabel('PC 2', fontweight=FONT_WEIGHT)
+        ax = fig.add_subplot(111, projection="3d")
+        ax.set_xlabel("PC 1", fontweight=FONT_WEIGHT)
+        ax.set_zlabel("PC 3", fontweight=FONT_WEIGHT)
+        ax.set_ylabel("PC 2", fontweight=FONT_WEIGHT)
 
         # For generating figure in paper.md
         ax.set_xticks([-2, -1, 0, 1, 2])
@@ -121,9 +121,9 @@ def plot_fps(fps,
         # For 1D or 0D networks (i.e., never)
         pca = None
         ax = fig.add_subplot(111)
-        ax.xlabel('Hidden 1', fontweight=FONT_WEIGHT)
+        ax.xlabel("Hidden 1", fontweight=FONT_WEIGHT)
         if n_states == 2:
-            ax.ylabel('Hidden 2', fontweight=FONT_WEIGHT)
+            ax.ylabel("Hidden 2", fontweight=FONT_WEIGHT)
 
     if state_traj is not None:
         if plot_batch_idx is None:
@@ -136,145 +136,141 @@ def plot_fps(fps,
                 z_idx = pca.transform(x_idx[plot_time_idx, :])
             else:
                 z_idx = x_idx[plot_time_idx, :]
-            plot_123d(ax, z_idx, color='b', linewidth=0.2)
+            plot_123d(ax, z_idx, color="b", linewidth=0.2)
 
     for init_idx in range(n_inits):
-        plot_fixed_point(
-            ax,
-            fps[init_idx],
-            pca,
-            scale=mode_scale)
+        plot_fixed_point(ax, fps[init_idx], pca, scale=mode_scale)
 
     plt.ion()
     plt.show()
     plt.pause(1e-10)
-    
+
     return fig
 
-def plot_fixed_point(ax, fp, pca,
-	scale=1.0,
-	max_n_modes=3,
-	do_plot_unstable_fps=True,
-	do_plot_stable_modes=False, # (for unstable FPs)
-	stable_color='k',
-	stable_marker='.',
-	unstable_color='r',
-	unstable_marker=None,
-	**kwargs):
-	'''Plots a single fixed point and its dominant eigenmodes.
 
-	Args:
-		ax: Matplotlib figure axis on which to plot everything.
+def plot_fixed_point(
+    ax,
+    fp,
+    pca,
+    scale=1.0,
+    max_n_modes=3,
+    do_plot_unstable_fps=True,
+    do_plot_stable_modes=False,  # (for unstable FPs)
+    stable_color="k",
+    stable_marker=".",
+    unstable_color="r",
+    unstable_marker=None,
+    **kwargs,
+):
+    """Plots a single fixed point and its dominant eigenmodes.
 
-		fp: a FixedPoints object containing a single fixed point
-		(i.e., fp.n == 1),
+    Args:
+            ax: Matplotlib figure axis on which to plot everything.
 
-		pca: PCA object as returned by sklearn.decomposition.PCA. This
-		is used to transform the high-d state space representations
-		into 3-d for visualization.
+            fp: a FixedPoints object containing a single fixed point
+            (i.e., fp.n == 1),
 
-		scale (optional): Scale factor for stretching (>1) or shrinking
-		(<1) lines representing eigenmodes of the Jacobian. Default:
-		1.0 (unity).
+            pca: PCA object as returned by sklearn.decomposition.PCA. This
+            is used to transform the high-d state space representations
+            into 3-d for visualization.
 
-		max_n_modes (optional): Maximum number of eigenmodes to plot.
-		Default: 3.
+            scale (optional): Scale factor for stretching (>1) or shrinking
+            (<1) lines representing eigenmodes of the Jacobian. Default:
+            1.0 (unity).
 
-		do_plot_stable_modes (optional): bool indicating whether or
-		not to plot lines representing stable modes (i.e.,
-		eigenvectors of the Jacobian whose eigenvalue magnitude is
-		less than one).
+            max_n_modes (optional): Maximum number of eigenmodes to plot.
+            Default: 3.
 
-	Returns:
-		None.
-	'''
+            do_plot_stable_modes (optional): bool indicating whether or
+            not to plot lines representing stable modes (i.e.,
+            eigenvectors of the Jacobian whose eigenvalue magnitude is
+            less than one).
 
-	xstar = fp.xstar
-	J = fp.J_xstar
-	n_states = fp.n_states
+    Returns:
+            None.
+    """
 
-	has_J = J is not None
+    xstar = fp.xstar
+    J = fp.J_xstar
+    n_states = fp.n_states
 
-	if has_J:
+    has_J = J is not None
 
-		if not fp.has_decomposed_jacobians:
-			''' Ideally, never wind up here. Eigen decomposition is much faster in batch mode.'''
-			print('Decomposing Jacobians, one fixed point at time.')
-			print('\t warning: THIS CAN BE VERY SLOW.')
-			fp.decompose_Jacobians()
+    if has_J:
 
-		e_vals = fp.eigval_J_xstar[0]
-		e_vecs = fp.eigvec_J_xstar[0]
+        if not fp.has_decomposed_jacobians:
+            """Ideally, never wind up here. Eigen decomposition is much faster in batch mode."""
+            print("Decomposing Jacobians, one fixed point at time.")
+            print("\t warning: THIS CAN BE VERY SLOW.")
+            fp.decompose_Jacobians()
 
-		sorted_e_val_idx = np.argsort(np.abs(e_vals))
+        e_vals = fp.eigval_J_xstar[0]
+        e_vecs = fp.eigvec_J_xstar[0]
 
-		if max_n_modes > n_states:
-			max_n_modes = n_states
+        sorted_e_val_idx = np.argsort(np.abs(e_vals))
 
-		# Determine stability of fixed points
-		is_stable = np.all(np.abs(e_vals) < 1.0)
+        if max_n_modes > n_states:
+            max_n_modes = n_states
 
-		if is_stable:
-			color = stable_color
-			marker = stable_marker
-		else:
-			color = unstable_color
-			marker = unstable_marker
-	else:
-		color = stable_color
-		marker = stable_marker
+        # Determine stability of fixed points
+        is_stable = np.all(np.abs(e_vals) < 1.0)
 
-	do_plot = (not has_J) or is_stable or do_plot_unstable_fps
+        if is_stable:
+            color = stable_color
+            marker = stable_marker
+        else:
+            color = unstable_color
+            marker = unstable_marker
+    else:
+        color = stable_color
+        marker = stable_marker
 
-	if do_plot:
-		if has_J:
-			for mode_idx in range(max_n_modes):
-				# -[1, 2, ..., max_n_modes]
-				idx = sorted_e_val_idx[-(mode_idx+1)]
+    do_plot = (not has_J) or is_stable or do_plot_unstable_fps
 
-				# Magnitude of complex eigenvalue
-				e_val_mag = np.abs(e_vals[idx])
+    if do_plot:
+        if has_J:
+            for mode_idx in range(max_n_modes):
+                # -[1, 2, ..., max_n_modes]
+                idx = sorted_e_val_idx[-(mode_idx + 1)]
 
-				if e_val_mag > 1.0 or do_plot_stable_modes:
+                # Magnitude of complex eigenvalue
+                e_val_mag = np.abs(e_vals[idx])
 
-					# Already real. Cast to avoid warning.
-					e_vec = np.real(e_vecs[:,idx])
+                if e_val_mag > 1.0 or do_plot_stable_modes:
 
-					# [1 x d] numpy arrays
-					xstar_plus = xstar + scale*e_val_mag*e_vec
-					xstar_minus = xstar - scale*e_val_mag*e_vec
+                    # Already real. Cast to avoid warning.
+                    e_vec = np.real(e_vecs[:, idx])
 
-					# [3 x d] numpy array
-					xstar_mode = np.vstack((xstar_minus, xstar, xstar_plus))
+                    # [1 x d] numpy arrays
+                    xstar_plus = xstar + scale * e_val_mag * e_vec
+                    xstar_minus = xstar - scale * e_val_mag * e_vec
 
-					if e_val_mag < 1.0:
-						color = stable_color
-					else:
-						color = unstable_color
+                    # [3 x d] numpy array
+                    xstar_mode = np.vstack((xstar_minus, xstar, xstar_plus))
 
-					if n_states >= 3 and pca is not None:
-						# [3 x 3] numpy array
-						zstar_mode = pca.transform(xstar_mode)
-					else:
-						zstar_mode = xstar_mode
+                    if e_val_mag < 1.0:
+                        color = stable_color
+                    else:
+                        color = unstable_color
 
-					plot_123d(ax, zstar_mode,
-					          color=color,
-					          **kwargs)
+                    if n_states >= 3 and pca is not None:
+                        # [3 x 3] numpy array
+                        zstar_mode = pca.transform(xstar_mode)
+                    else:
+                        zstar_mode = xstar_mode
 
-		if n_states >= 3 and pca is not None:
-			zstar = pca.transform(xstar)
-		else:
-			zstar = xstar
+                    plot_123d(ax, zstar_mode, color=color, **kwargs)
 
-		plot_123d(ax, zstar,
-		          color=color,
-		          marker=marker,
-		          markersize=12,
-		          **kwargs)
+        if n_states >= 3 and pca is not None:
+            zstar = pca.transform(xstar)
+        else:
+            zstar = xstar
+
+        plot_123d(ax, zstar, color=color, marker=marker, markersize=12, **kwargs)
+
 
 def plot_123d(ax, z, **kwargs):
-    '''Plots in 1D, 2D, or 3D.
+    """Plots in 1D, 2D, or 3D.
 
     Args:
         ax: Matplotlib figure axis on which to plot everything.
@@ -286,9 +282,9 @@ def plot_123d(ax, z, **kwargs):
 
     Returns:
         None.
-    '''
+    """
     n_states = z.shape[1]
-    if n_states ==3:
+    if n_states == 3:
         ax.plot(z[:, 0], z[:, 1], z[:, 2], **kwargs)
     elif n_states == 2:
         ax.plot(z[:, 0], z[:, 1], **kwargs)

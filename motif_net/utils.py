@@ -3,6 +3,7 @@ from typing import Tuple
 import torch
 import yaml
 
+
 def criterion(z: torch.Tensor, z_hat: torch.Tensor, mask: torch.Tensor) -> float:
     """Computes the loss for a model output and task.
 
@@ -51,9 +52,7 @@ def correct_task(theta: torch.Tensor, z_hat: torch.Tensor) -> torch.Tensor:
 
     dist = theta - theta_hat
     dist = torch.minimum(torch.abs(dist), 2 * torch.pi - torch.abs(dist))
-    distance_check = torch.logical_and(
-        torch.logical_not(fixate), torch.logical_not(fixate_hat)
-    )
+    distance_check = torch.logical_and(torch.logical_not(fixate), torch.logical_not(fixate_hat))
     distance_check = torch.logical_and(distance_check, dist < torch.pi / 10)
     fixation_check = torch.logical_and(fixate, fixate_hat)
 
@@ -89,14 +88,14 @@ def load_config(yaml_path: str) -> Tuple[dict, dict]:
     Returns:
     --------
         train_config
-            Parameters for training configuration 
+            Parameters for training configuration
         model_config
             Parameters for model configuration
     """
-    with open(yaml_path, 'r') as f:
+    with open(yaml_path, "r") as f:
         config = yaml.load(f, Loader=yaml.Loader)
-    
+
     train_config = config["train"]
     model_config = config["model"]
-    
+
     return train_config, model_config
