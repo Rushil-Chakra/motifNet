@@ -1,7 +1,5 @@
-from typing import Optional
-from .tasks import Task
+from .task_data.tasks import TaskLoader
 
-from . import task_init
 from .utils import criterion, correct_task
 
 import torch
@@ -16,21 +14,22 @@ logger = logging.getLogger(__name__)
 
 def train(
     model: torch.nn.Module,
+    task_loader: TaskLoader,
     lr: float,
     l2_terms: tuple[float, float],
     batch_size: int,
     max_iter: int = 50000000,
     clip_grad: bool = True,
     max_norm: int = 10,
-    task_list: Optional[list[Task]] = None,
-    task_kwargs: dict = {},
 ):
     """Training loop for a model.
 
     Parameters
     ----------
-     model
-        Model to train.
+    model
+        Model to train
+    task_loader
+        ``TaskLoader`` object that generates data to train on
     lr
         Learning rate
     l2_terms
@@ -43,11 +42,7 @@ def train(
     clip_grad
         Whether to clip gradients or not. Default value is True
     max_norm
-        The maximum norm when clipping gradients. Default value 10.
-    task_list
-        Optional custom list of tasks to train
-    task_kwargs
-        Optional task init arguments to set.
+        The maximum norm when clipping gradients. Default value 10
     """
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     # device = "mps:0" if torch.backends.mps.is_available() else device
@@ -67,13 +62,12 @@ def train(
         h_t = model.init_hidden(batch_size)
         optimizer.zero_grad()
 
-        # TODO: FIX THIS LINE
-        # task = task_init.task_generator(task_list, task_kwargs)
+        task = task_loader.sample_task()
         x = task.get_input_array()
-        y_hat, h_t = model(x, h_t)
         y, theta = task.get_output()
         mask = task.get_mask()
 
+        y_hat, h_t = model(x, h_t)
         activation_loss = l2_a_term * torch.square(torch.norm(h_t, p=2))
         loss = criterion(y, y_hat, mask) + activation_loss
         loss.backward()
