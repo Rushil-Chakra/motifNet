@@ -34,7 +34,6 @@ class TaskPeriod:
         max_t: int,
         dt: int = 20,
         batch_size: int = 1,
-        rng: torch.Generator = None,
     ) -> None:
         """Definition for each task period.
 
@@ -54,18 +53,15 @@ class TaskPeriod:
             Size of time step.
         batch_size
             Number of trials per batch.
-        rng
-            Torch generator object used to generate pseudorandom values.
         """
         if period_name not in get_args(period_name_type):
             raise ValueError("Period name not found.")
         if task_name not in TASK_VECTOR_DEFINITION:
             raise ValueError("Task name not found")
         self.period_name = period_name
-        self.rng = rng
 
         # Gets an int instead of int-typed Tuple
-        self.n_steps = (torch.randint(min_t, max_t, (1,), generator=rng) / dt).int().item()
+        self.n_steps = (torch.randint(min_t, max_t, (1,)) / dt).int().item()
         fixation = 0 if period_name == "response" else 1
 
         self.input_array = torch.zeros((self.n_steps, batch_size, 20))
@@ -115,11 +111,11 @@ class Task:
     def __init__(
         self,
         name: str,
-        batch_size: int = 64,
+        batch_size: int = 1,
         dt: int = 20,
         gamma: Optional[float] = None,
-        rng: torch.Generator = None,
     ) -> None:
+        # TODO: Add more to docstring
         """A collection of task periods meant to represent a single task input.
 
         Each instance creates an object capable of generating random batches of trials.
@@ -136,8 +132,6 @@ class Task:
         gamma
             Equivalent to dt/tau in paper. Used here to add private noise to the input.
             If set to None, it does not add any noise.
-        rng
-            Torch generator object used to generate pseudorandom values.
         """
         if name not in TASK_VECTOR_DEFINITION:
             raise ValueError("Task name not found.")
@@ -146,7 +140,6 @@ class Task:
         self.task_periods = []
         self.dt = dt
         self.gamma = gamma
-        self.rng = rng
 
         # These get set after a call to set_task_periods
         self.n_steps = None
@@ -173,7 +166,7 @@ class Task:
             A batch of angles to add to an ``input_array`` for a task period. Takes shape
             (batch_size, n_mod)
         """
-        theta = torch.rand((self.batch_size, n_mod), generator=self.rng) * 2 * torch.pi
+        theta = torch.rand((self.batch_size, n_mod)) * 2 * torch.pi
         return theta
 
     def generate_modality(self) -> torch.Tensor:
@@ -248,9 +241,7 @@ class Task:
         task_input_array = torch.cat([period.input_array for period in self.task_periods], dim=0)
         if self.gamma is not None:
             task_input_array += (
-                torch.randn(task_input_array.size(), generator=self.rng)
-                * np.sqrt(2 / (self.gamma))
-                * 0.1
+                torch.randn(task_input_array.size()) * np.sqrt(2 / (self.gamma)) * 0.1
             )
         return task_input_array
 
@@ -264,10 +255,10 @@ class Task:
             Takes shape (T, batch_size, 3)
         theta
             The thetas that a network must match. Easier to have
-            than to compute from z. Takes shape (T, batch_size)"""
+            than to compute from y. Takes shape (T, batch_size)"""
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
         # device = "mps:0" if torch.backends.mps.is_available() else device
-        y, theta = self.z.to(device), self.theta.to(device)
+        y, theta = self.y.to(device), self.theta.to(device)
         return y, theta
 
     def get_time_spans(self) -> dict[str, dict[str, int]]:
@@ -326,9 +317,74 @@ class Task:
             max_t=max_t,
             dt=self.dt,
             batch_size=self.batch_size,
-            rng=self.rng,
         )
         if stimulus_kwargs is not None:
-            task_period.add_stimulus_values(**stimulus_kwargs)
+            task_period.set_stimulus_values(**stimulus_kwargs)
 
         return task_period
+
+
+class TaskLoader:
+    def __init__(
+        self,
+        task_dict,
+        task_probs: Optional[list] = None,
+        task_kwargs: dict = {},
+    ):
+        self.task_dict = task_dict
+        if task_probs is None:
+            pass
+        self.task_kwargs = task_kwargs
+
+    def init_task(self, task_name: str, **kwargs: dict) -> Task:
+        """Initialize a ``Task``
+
+        Parameters
+        ----------
+        task_name
+            Name of ``Task``
+        **kwargs
+            Named parameters to pass to task initialization.
+
+        Returns
+        -------
+        task_obj
+            An instantiation of the task object requested
+        """
+
+        task_obj = self.task_dict[task_name](**kwargs)
+        return task_obj
+
+    def sample_task(
+        self,
+        n_tasks: int = 1,
+        task_list: Optional[list[Task]] = None,
+        task_prob: Optional[torch.Tensor] = None,
+        kwargs: dict = {},
+    ) -> Task:
+        """Randomly picks a task from a given list.
+
+        Parameters
+        ----------
+        n_tasks
+            Number of samples
+        task_list:
+            List of tasks to draw samples from. If none is given then
+            samples are drawn uniformly.
+        task_prob:
+            Tensor of probabilities for each task to be chosen.
+        kwargs
+            Named parameters to pass to task initialization.
+
+        Returns
+        -------
+        task
+            The sampled ``Task`` object.
+        """
+        if task_prob is None:
+            task_prob = torch.ones(len(task_list)) / len(task_list)
+
+        idx = torch.multinomial(task_prob, n_tasks, replacement=True).item()
+        task = self.init_task(task_list[idx], **kwargs)
+
+        return task

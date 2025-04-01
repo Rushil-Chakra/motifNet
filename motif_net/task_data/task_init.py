@@ -1,10 +1,9 @@
 from typing import Optional, Literal
-from .tasks import Task, TaskPeriod
+from .tasks import Task, TaskLoader
 
 from dataclasses import dataclass
 
 import torch
-import numpy as np
 
 task_type = Literal[
     "DelayedPro",
@@ -30,10 +29,9 @@ class DelayedPro(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("DelayedPro", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("DelayedPro", self.batch_size, self.dt, self.gamma)
 
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
@@ -49,7 +47,7 @@ class DelayedPro(Task):
     def set_y(self, theta: torch.Tensor) -> None:
         """Move to same angle as presented."""
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -58,17 +56,16 @@ class DelayedAnti(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("DelayedAnti", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("DelayedAnti", self.batch_size, self.dt, self.gamma)
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
-        context = self.set_task_periods("context", 300, 700)
-        stim_1 = self.set_task_periods("stimulus1", 300, 1500, stimulus_kwargs)
-        response = self.set_task_periods("response", 300, 1500, stimulus_kwargs)
+        context = self.generate_task_period("context", 300, 700)
+        stim_1 = self.generate_task_period("stimulus1", 300, 1500, stimulus_kwargs)
+        response = self.generate_task_period("response", 300, 1500, stimulus_kwargs)
 
         self.set_task_periods([context, stim_1, response])
         self.set_y(theta)
@@ -77,7 +74,7 @@ class DelayedAnti(Task):
         """Move in opposite direction of angle presented."""
         theta += torch.pi
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -86,10 +83,9 @@ class MemoryPro(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("MemoryPro", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("MemoryPro", self.batch_size, self.dt, self.gamma)
 
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
@@ -106,7 +102,7 @@ class MemoryPro(Task):
     def set_y(self, theta: torch.Tensor) -> None:
         """Move in same angle as presented after stimulus has faded."""
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -115,10 +111,9 @@ class MemoryAnti(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("MemoryAnti", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("MemoryAnti", self.batch_size, self.dt, self.gamma)
 
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
@@ -136,7 +131,7 @@ class MemoryAnti(Task):
         """Move in opposite direction of stimulus after it has faded."""
         theta += torch.pi
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -145,10 +140,9 @@ class ReactPro(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("ReactPro", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("ReactPro", self.batch_size, self.dt, self.gamma)
 
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
@@ -165,7 +159,7 @@ class ReactPro(Task):
         """Move in direction of stimulus immediately. There is no change in fixation during
         the whole trial."""
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -174,10 +168,9 @@ class ReactAnti(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("ReactAnti", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("ReactAnti", self.batch_size, self.dt, self.gamma)
 
         theta = self.generate_stimulus_batch()
         modality = self.generate_modality()
@@ -195,7 +188,7 @@ class ReactAnti(Task):
         the whole trial."""
         theta += torch.pi
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -204,10 +197,9 @@ class IntegrationModality1(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("IntegrationModality1", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("IntegrationModality1", self.batch_size, self.dt, self.gamma)
 
         # Using values from code
         amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
@@ -245,7 +237,7 @@ class IntegrationModality1(Task):
         theta = torch.cat((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start, :] = theta.squeeze(1)
 
 
@@ -254,10 +246,9 @@ class IntegrationModality2(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("IntegrationModality2", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("IntegrationModality2", self.batch_size, self.dt, self.gamma)
 
         # Using values from code
         amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
@@ -295,7 +286,7 @@ class IntegrationModality2(Task):
         theta = torch.cat((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -304,10 +295,9 @@ class ContextIntModality1(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("ContextIntModality1", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("ContextIntModality1", self.batch_size, self.dt, self.gamma)
 
         # Using values from code
         # matrix math means I can set both modalities at once
@@ -351,7 +341,7 @@ class ContextIntModality1(Task):
         theta = torch.stack((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -360,10 +350,9 @@ class ContextIntModality2(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("ContextIntModality2", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("ContextIntModality2", self.batch_size, self.dt, self.gamma)
 
         # Using values from code
         amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
@@ -407,7 +396,7 @@ class ContextIntModality2(Task):
         theta = torch.cat((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -416,10 +405,9 @@ class IntegrationMultiModal(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("IntegrationMultiModal", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("IntegrationMultiModal", self.batch_size, self.dt, self.gamma)
 
         # Using values from paper code
         amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
@@ -470,7 +458,7 @@ class IntegrationMultiModal(Task):
 
         # Set response period input/output
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -479,10 +467,9 @@ class ReactMatch2Sample(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("ReactMatch2Sample", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("ReactMatch2Sample", self.batch_size, self.dt, self.gamma)
 
         theta_1 = self.generate_stimulus_batch()
         # add minimum [pi/10, 2*pi - pi/10] to avoid falling within acceptable bound
@@ -509,7 +496,7 @@ class ReactMatch2Sample(Task):
         theta = torch.cat((torch.sin(theta_2), torch.cos(theta_2)), dim=1)
         theta[(theta_1 == theta_2).squeeze(1)] = -1
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = theta
+        self.y[response_start:, :, 1:] = theta
         self.theta[response_start:] = theta_2.squeeze(1)
 
 
@@ -518,10 +505,9 @@ class ReactNonMatch2Sample(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("ReactNonMatch2Sample", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("ReactNonMatch2Sample", self.batch_size, self.dt, self.gamma)
 
         theta_1 = self.generate_stimulus_batch()
         # add minimum [pi/10, 2*pi - pi/10] to avoid falling within acceptable bound
@@ -549,7 +535,7 @@ class ReactNonMatch2Sample(Task):
         theta = torch.cat((torch.sin(theta_2), torch.cos(theta_2)), dim=1)
         theta[(theta_2 == theta_1 + torch.pi).squeeze(1)] = -1
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = theta
+        self.y[response_start:, :, 1:] = theta
         self.theta[response_start:] = theta_2.squeeze(1)
 
 
@@ -558,10 +544,9 @@ class ReactCategoryPro(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("ReactCategoryPro", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("ReactCategoryPro", self.batch_size, self.dt, self.gamma)
 
         theta_1 = self.generate_stimulus_batch()
         theta_2 = self.generate_stimulus_batch()
@@ -587,7 +572,7 @@ class ReactCategoryPro(Task):
         theta = torch.stack((torch.sin(theta_2), torch.cos(theta_2)), dim=2)
         theta[torch.logical_or(cat_1, cat_2).squeeze(1)] = -1
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = theta.squeeze(1)
+        self.y[response_start:, :, 1:] = theta.squeeze(1)
         self.theta[response_start:] = theta_2.squeeze(1)
 
 
@@ -596,10 +581,9 @@ class ReactCategoryAnti(Task):
     batch_size: int = 64
     dt: int = 20
     gamma: Optional[float] = None
-    rng: Optional[torch.Generator] = None
 
     def __post_init__(self) -> None:
-        super().__init__("ReactCategoryAnti", self.batch_size, self.dt, self.gamma, self.rng)
+        super().__init__("ReactCategoryAnti", self.batch_size, self.dt, self.gamma)
 
         theta_1 = self.generate_stimulus_batch()
         theta_2 = self.generate_stimulus_batch()
@@ -625,67 +609,27 @@ class ReactCategoryAnti(Task):
         theta = torch.cat((torch.sin(theta_2), torch.cos(theta_2)), dim=1)
         theta[torch.logical_or(cat_1, cat_2).squeeze(1)] = -1
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.z[response_start:, :, 1:] = theta.squeeze(1)
+        self.y[response_start:, :, 1:] = theta.squeeze(1)
         self.theta[response_start:] = theta_2.squeeze(1)
 
 
-def init(task_name: task_type, **kwargs: dict) -> Task:
-    """Initialize a task by name
-
-    Parameters
-    ----------
-    task_name
-        Name of task. Must be from controlled list
-    **kwargs
-        Named parameters to pass to task initialization.
-
-    Returns
-    -------
-    task_obj
-        An instantiation of the task object requested
-    """
-    task_dict = {
-        "DelayedPro": DelayedPro,
-        "DelayedAnti": DelayedAnti,
-        "MemoryPro": MemoryPro,
-        "MemoryAnti": MemoryAnti,
-        "ReactPro": ReactPro,
-        "ReactAnti": ReactAnti,
-        "IntegrationModality1": IntegrationModality1,
-        "IntegrationModality2": IntegrationModality2,
-        "ContextIntModality1": ContextIntModality1,
-        "ContextIntModality2": ContextIntModality2,
-        "IntegrationMultiModal": IntegrationMultiModal,
-        "ReactMatch2Sample": ReactMatch2Sample,
-        "ReactNonMatch2Sample": ReactNonMatch2Sample,
-        "ReactCategoryPro": ReactCategoryPro,
-        "ReactCategoryAnti": ReactCategoryAnti,
-    }
-    task_obj = task_dict[task_name](**kwargs)
-    return task_obj
-
-
-# TODO: Fix the docstring
-def task_generator(n_tasks: int, task_list: Optional[list[Task]] = None, kwargs: dict = {}):
-    """Randomly picks a task.
-
-    Parameters
-    ----------
-    task_list:
-        Custom list of tasks to select from. By default all tasks are considered
-        with ``ContextIntModality1`` and ``ContextIntModality2`` are each 5x more likely to be chosen.
-    kwargs
-        Named parameters to pass to task initialization.
-
-    Returns
-    -------
-    task
-        A randomly chosen task.
-    """
-    # Maybe I just vectorize this
-    i = 0
-    while i < n_tasks:
-        rand_task_name = task_list[np.random.randint(0, len(task_list))]
-        task = init(rand_task_name, **kwargs)
-        yield task
-        i += 1
+task_dict = {
+    "DelayedPro": DelayedPro,
+    "DelayedAnti": DelayedAnti,
+    "MemoryPro": MemoryPro,
+    "MemoryAnti": MemoryAnti,
+    "ReactPro": ReactPro,
+    "ReactAnti": ReactAnti,
+    "IntegrationModality1": IntegrationModality1,
+    "IntegrationModality2": IntegrationModality2,
+    "ContextIntModality1": ContextIntModality1,
+    "ContextIntModality2": ContextIntModality2,
+    "IntegrationMultiModal": IntegrationMultiModal,
+    "ReactMatch2Sample": ReactMatch2Sample,
+    "ReactNonMatch2Sample": ReactNonMatch2Sample,
+    "ReactCategoryPro": ReactCategoryPro,
+    "ReactCategoryAnti": ReactCategoryAnti,
+}
+# TODO: Make config file for task shit
+task_kwargs = {}
+MotifTaskLoader = TaskLoader(task_dict, task_kwargs=task_kwargs)
