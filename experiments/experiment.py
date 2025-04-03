@@ -20,9 +20,10 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(config_path="../configs", config_name="default", version_base=None)
 def main(cfg: OmegaConf) -> None:
+    logger.info("\n" + OmegaConf.to_yaml(cfg))
     logger.info("Initializing TaskLoader")
     task_list = cfg["experiments"]["task_list"]
-    task_kwargs = cfg["motif_task_loader"]
+    task_kwargs = cfg["task_loader"]
     MotifTaskLoader = TaskLoader(task_dict=TASK_DICT, task_list=task_list, task_kwargs=task_kwargs)
 
     logger.info("Initializing network")

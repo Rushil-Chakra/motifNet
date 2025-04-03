@@ -1,5 +1,6 @@
 from omegaconf import OmegaConf
 
+import hydra
 from hydra import initialize, compose
 import pytest
 
