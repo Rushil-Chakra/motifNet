@@ -1,0 +1,6 @@
+defaults:
+  - motif_task_loader
+  - rnn
+  - train
+  - experiments: ???
+  - hydra

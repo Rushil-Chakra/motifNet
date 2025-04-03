@@ -1,0 +1,4 @@
+motif_task_loader:
+  batch_size: 64
+  dt: 20
+  gamma: 0.2

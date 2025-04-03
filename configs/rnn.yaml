@@ -1,0 +1,9 @@
+network:
+  hidden_size: 128
+  nonlinearity: 'softplus'
+  private_noise_std: 0.05
+  dt: 20
+  tau: 100
+  init_method: 'diag'
+  g: 0.8
+  seed: 42

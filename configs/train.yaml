@@ -1,0 +1,10 @@
+train:
+  lr: 1.0e-3
+  l2_terms:
+    - 1.0e-6
+    - 1.0e-6
+  batch_size: 64
+  max_iter: 50000000
+  clip_grad: True
+  max_norm: 10
+  
