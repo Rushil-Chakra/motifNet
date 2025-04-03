@@ -1,6 +1,6 @@
 defaults:
-  - motif_task_loader
-  - rnn
-  - train
+  - task_loader: default
+  - network: default
   - experiments: ???
+  - train
   - hydra
