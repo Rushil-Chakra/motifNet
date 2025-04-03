@@ -3,4 +3,4 @@ defaults:
   - network: default
   - experiments: ???
   - train
-  - hydra
+  - hydra: default
