@@ -1,4 +1,4 @@
-from .task_data.tasks import TaskLoader
+from .tasks import TaskLoader
 
 from .utils import criterion, correct_task
 
@@ -45,9 +45,9 @@ def train(
         The maximum norm when clipping gradients. Default value 10
     """
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    # device = "mps:0" if torch.backends.mps.is_available() else device
-    if torch.cuda.device_count() > 1:
-        model = torch.nn.DataParallel(model)
+    device = "mps:0" if torch.backends.mps.is_available() else device
+    # if torch.cuda.device_count() > 1:
+    #     model = torch.nn.DataParallel(model)
     model.to(device)
 
     # writer = SummaryWriter()

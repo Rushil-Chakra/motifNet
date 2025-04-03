@@ -146,6 +146,10 @@ class Task:
         self.y = None
         self.theta = None
 
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        device = "mps:0" if torch.backends.mps.is_available() else device
+        self.device = device
+
     def __repr__(self):
         name_str = f"{self.name} - batch_size: {self.batch_size} - n_steps: {self.n_steps}\n"
         for task_period in self.task_periods:
@@ -200,6 +204,7 @@ class Task:
         mask[response_start + delay :] = 5
         # The context output has double the penalty
         mask[..., 0] *= 2
+        mask = mask.to(self.device)
         return mask
 
     def set_task_periods(self, task_periods: list) -> None:
@@ -243,6 +248,7 @@ class Task:
             task_input_array += (
                 torch.randn(task_input_array.size()) * np.sqrt(2 / (self.gamma)) * 0.1
             )
+        task_input_array = task_input_array.to(self.device)
         return task_input_array
 
     def get_output(self) -> tuple[torch.Tensor, torch.Tensor]:
@@ -256,9 +262,7 @@ class Task:
         theta
             The thetas that a network must match. Easier to have
             than to compute from y. Takes shape (T, batch_size)"""
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        # device = "mps:0" if torch.backends.mps.is_available() else device
-        y, theta = self.y.to(device), self.theta.to(device)
+        y, theta = self.y.to(self.device), self.theta.to(self.device)
         return y, theta
 
     def get_time_spans(self) -> dict[str, dict[str, int]]:
@@ -327,64 +331,63 @@ class Task:
 class TaskLoader:
     def __init__(
         self,
-        task_dict,
-        task_probs: Optional[list] = None,
+        task_dict: dict,
+        task_list: Optional[list] = None,
+        task_probs: Optional[torch.Tensor] = None,
         task_kwargs: dict = {},
-    ):
+    ) -> None:
+        """Class to initialize specific ``Task`` objects or randomly sample with given probabilities.
+
+        Parameters
+        ----------
+        task_dict
+            Dictionary where the keys are names of the tasks and values are ``Task`` objects. Used
+            for indexing specific objects with a string.
+        task_list, optional
+            List of task names to draw random samples from, by default None
+        task_probs, optional
+            Tensor of probabilities of drawing each ``Task``. By default, probabilities are uniform.
+        task_kwargs, optional
+            Named parameters to pass to the ``Task`` object, by default ``{}``
+        """
         self.task_dict = task_dict
-        if task_probs is None:
-            pass
         self.task_kwargs = task_kwargs
 
-    def init_task(self, task_name: str, **kwargs: dict) -> Task:
+        if task_list is None:
+            task_list = list(self.task_dict.keys())
+        if task_probs is None:
+            task_probs = torch.ones(len(task_list)) / len(task_list)
+
+        self.task_list = task_list
+        self.task_probs = task_probs
+
+    def init_task(self, task_name: str) -> Task:
         """Initialize a ``Task``
 
         Parameters
         ----------
         task_name
             Name of ``Task``
-        **kwargs
-            Named parameters to pass to task initialization.
 
         Returns
         -------
         task_obj
             An instantiation of the task object requested
         """
-
-        task_obj = self.task_dict[task_name](**kwargs)
+        task_obj = self.task_dict[task_name](**self.task_kwargs)
         return task_obj
 
     def sample_task(
         self,
-        n_tasks: int = 1,
-        task_list: Optional[list[Task]] = None,
-        task_prob: Optional[torch.Tensor] = None,
-        kwargs: dict = {},
     ) -> Task:
         """Randomly picks a task from a given list.
-
-        Parameters
-        ----------
-        n_tasks
-            Number of samples
-        task_list:
-            List of tasks to draw samples from. If none is given then
-            samples are drawn uniformly.
-        task_prob:
-            Tensor of probabilities for each task to be chosen.
-        kwargs
-            Named parameters to pass to task initialization.
 
         Returns
         -------
         task
             The sampled ``Task`` object.
         """
-        if task_prob is None:
-            task_prob = torch.ones(len(task_list)) / len(task_list)
-
-        idx = torch.multinomial(task_prob, n_tasks, replacement=True).item()
-        task = self.init_task(task_list[idx], **kwargs)
+        idx = torch.multinomial(self.task_probs, 1, replacement=True).item()
+        task = self.init_task(self.task_list[idx])
 
         return task

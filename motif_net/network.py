@@ -53,6 +53,7 @@ class MotifNetwork(nn.Module):
             raise TypeError(f"init type {init_type} not valid.")
 
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        self.device = "mps:0" if torch.backends.mps.is_available() else self.device
         logger.info(f"Device set to {self.device}")
 
         super(MotifNetwork, self).__init__()
@@ -122,7 +123,7 @@ class MotifNetwork(nn.Module):
         h = torch.zeros((x.shape[0], x.shape[1], self.hidden_size)).to(self.device)
         # ushing function definitions from paper
         for i in range(x.shape[0]):
-            noise = torch.normal(torch.zeros(h_t.size()), self.private_noise_std)
+            noise = torch.normal(torch.zeros(h_t.size()), self.private_noise_std).to(self.device)
             h_t = (1 - self.gamma) * h_t + self.gamma * self.nonlinearity(
                 self.hi2hi(h_t) + self.in2hi(x[i]) + noise
             )
