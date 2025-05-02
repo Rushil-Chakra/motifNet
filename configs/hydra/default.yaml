@@ -1,8 +1,7 @@
 defaults:
   - override hydra_logging: colorlog
   - override job_logging: colorlog
-  - override launcher: slurm
-
+  - override launcher: submitit_slurm
 
 run:
   dir: ../models/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
@@ -20,3 +19,5 @@ job_logging:
     file:
       # Incorporates fix from https://github.com/facebookresearch/hydra/pull/2242
       filename: ../models/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}/experiment.log
+
+mode: MULTIRUN
