@@ -5,6 +5,7 @@ from motif_net.tasks import TaskLoader
 from task_init import TASK_DICT
 
 from omegaconf import OmegaConf
+from hydra.core.hydra_config import HydraConfig
 
 import torch
 import hydra
@@ -32,8 +33,10 @@ def main(cfg: OmegaConf) -> None:
     logger.info("Starting training")
     model = train(network, MotifTaskLoader, **cfg["train"])
 
-    logger.info("Saving model")
-    output_path = f"{hydra.job.sweep.dir}/{hydra.job.sweep.subdir}/model.pt"
+    output_path = (
+        f"{HydraConfig.get().job.sweep.dir}/{HydraConfig.get().job.sweep.subdir}/model.pt"
+    )
+    logger.info(f"Saving model to {output_path}")
     torch.save(model, output_path)
 
 
