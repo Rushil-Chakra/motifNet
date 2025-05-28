@@ -68,9 +68,9 @@ class MotifNetwork(nn.Module):
         self.output_size = 3
 
         # Layer definitions
-        self.in2hi = nn.Linear(self.input_size, self.hidden_size)
-        self.hi2hi = nn.Linear(self.hidden_size, self.hidden_size, bias=False)
-        self.hi2out = nn.Linear(self.hidden_size, self.output_size)
+        self.in2hi = nn.Linear(self.input_size, self.hidden_size, device=self.device)
+        self.hi2hi = nn.Linear(self.hidden_size, self.hidden_size, bias=False, device=self.device)
+        self.hi2out = nn.Linear(self.hidden_size, self.output_size, device=self.device)
 
         self.private_noise_std = private_noise_std
         self.gamma = dt / tau
@@ -83,15 +83,14 @@ class MotifNetwork(nn.Module):
         }
         self.nonlinearity = funcs[nonlinearity]
 
-        if init_method == "diag":
-            h_0_w = torch.eye((self.hidden_size)) * g
-        elif init_method == "gauss":
-            h_0_w = (
-                torch.randn((self.hidden_size, self.hidden_size)) * g / np.sqrt(self.hidden_size)
-            )
-        self.hi2hi.weight = torch.nn.Parameter(h_0_w)
+        self.g = g
+        i_w_0 = self.init_weights("gauss", self.input_size, self.hidden_size)
+        h_w_0 = self.init_weights(init_method, self.hidden_size, self.hidden_size)
+        o_w_0 = self.init_weights("gauss", self.hidden_size, self.output_size)
 
-        # TODO: log network config
+        self.in2hi.weight = torch.nn.Parameter(i_w_0)
+        self.hi2hi.weight = torch.nn.Parameter(h_w_0)
+        self.hi2out.weight = torch.nn.Parameter(o_w_0)
 
     def forward(
         self,
@@ -107,7 +106,7 @@ class MotifNetwork(nn.Module):
         Parameters
         ----------
         x
-            The input array from a task. Take the shape (T, batch_size, 20).
+            The input array from a task. Take the shape (T, batch_size, n_inputs=20).
         h_t
             The current hidden state of the network. This is either the initialized
             hidden state, or the output of a previous call. Takes the shape (batch_size, hidden_size)
@@ -117,10 +116,11 @@ class MotifNetwork(nn.Module):
         y
             The estimated output. Takes shape (T, batch_shape, 3)
         h_t
-            The updated hidden weights of the network. Takes the shape (T, batch_size, hidden_size)
+            The updated hidden weights of the network. Takes the shape (batch_size, hidden_size)
         """
         y = torch.zeros((x.shape[0], x.shape[1], 3)).to(self.device)
         h = torch.zeros((x.shape[0], x.shape[1], self.hidden_size)).to(self.device)
+
         # ushing function definitions from paper
         for i in range(x.shape[0]):
             noise = torch.normal(torch.zeros(h_t.size()), self.private_noise_std).to(self.device)
@@ -146,7 +146,40 @@ class MotifNetwork(nn.Module):
             An initialized hidden state using the ``kaiming_uniform_`` function from pytorch.
         Takes shape (batch_size, hidden_size)
         """
-        h_0 = torch.nn.init.zeros_(torch.empty(batch_size, self.hidden_size)).to(self.device)
+        h_0 = torch.nn.init.kaiming_uniform_(torch.empty(batch_size, self.hidden_size)).to(
+            self.device
+        )
         return h_0
 
     # TODO: define a localized initialization where connections are in neighborhoods
+
+    def init_weights(
+        self,
+        init_method: str,
+        input_size: int,
+        output_size,
+    ) -> torch.Tensor:
+        """Initialize the weight matrix for each layer
+
+        Parameters
+        ----------
+        init_method
+            Either 'diag' or 'gauss', which describes the method to initialize weights.
+            Note that if 'diag' is provided, they layer is assumed to be square with
+            layer size = ``output_size``. ``input_size`` will be ignored
+        input_size
+            The number of connections going into the layer
+        output_size
+            The number of connections going out of the layer. Equivalent to the layer size
+
+        Returns
+        -------
+        w_0
+            The weights of size (input_size, output_size)
+        """
+        if init_method == "diag":
+            w_0 = torch.eye((output_size)) * self.g
+        elif init_method == "gauss":
+            w_0 = torch.randn((output_size, input_size)) * self.g / np.sqrt(input_size)
+        w_0 = w_0.to(self.device)
+        return w_0
