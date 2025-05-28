@@ -1,23 +1,19 @@
-from motif_net.tasks import Task
-from motif_net.network import MotifNetwork
-
-from motif_net.network import MotifNetwork
-from motif_net.train import train
-from motif_net.tasks import TaskLoader
-from motif_net.FixedPointFinder import FixedPointFinderTorch as FixedPointFinder
-from motif_net.FixedPointFinder import plot_fps
-
-from task_init import TASK_DICT
-
-from omegaconf import OmegaConf
-from hydra.core.hydra_config import HydraConfig
-
-import torch
-import hydra
-import pickle
 import logging
+import pickle
 import sys
 import traceback
+
+import hydra
+import torch
+from hydra.core.hydra_config import HydraConfig
+from omegaconf import OmegaConf
+from task_init import TASK_DICT
+
+from motif_net.FixedPointFinder import FixedPointFinderTorch as FixedPointFinder
+from motif_net.FixedPointFinder import plot_fps
+from motif_net.network import MotifNetwork
+from motif_net.tasks import TaskLoader
+from motif_net.train import train
 
 # from FixedPointFinder.FixedPointFinderTorch import (
 #     FixedPointFinderTorch as FixedPointFinder,

@@ -1,7 +1,6 @@
 from typing import Literal, Optional, get_args
 
 import numpy as np
-
 import torch
 
 TASK_VECTOR_DEFINITION = [
@@ -98,11 +97,26 @@ class TaskPeriod:
         n_mod
             The number of stimulus modalities being added. Should be only either 1 or 2.
         """
+        # Makes this nice for when I need to set 2 modalities at once
+        if isinstance(amplitude, float):
+            amplitude = torch.Tensor([amplitude]).unsqueeze(1)
         mod_idx = 2 * modality - 1
         offset = n_mod * 2
         # gotta do this to set for each sample in batch
         # Modalities start at 1, assuming only 2 values possible
-        stim_vals = torch.cat((amplitude * torch.sin(theta), amplitude * torch.cos(theta)), dim=1)
+        stim_vals = []
+        for i in range(n_mod):
+            stim_vals.append(
+                torch.stack(
+                    (
+                        amplitude[:, i] * torch.sin(theta[:, i]),
+                        amplitude[:, i] * torch.cos(theta[:, i]),
+                    ),
+                    dim=1,
+                )
+            )
+        stim_vals = torch.cat(stim_vals, dim=1)
+
         for i in range(self.input_array.shape[1]):
             self.input_array[:, i, mod_idx[i] : mod_idx[i] + offset] = stim_vals[i, :]
 
@@ -119,6 +133,12 @@ class Task:
         """A collection of task periods meant to represent a single task input.
 
         Each instance creates an object capable of generating random batches of trials.
+
+        Note
+        ----
+        Any class function that is prefixed with ``generate_`` denotes a stochastic function
+        that will have different values each call. A function prefixed with ``get_`` denotes
+        a deterministic function that will have the same return value each call.
 
         Parameters
         ----------

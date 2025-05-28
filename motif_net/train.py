@@ -1,12 +1,11 @@
-from .tasks import TaskLoader
-
-from .utils import criterion, correct_task
-from .plot import plot_task
+import logging
 
 import torch
 from torch import optim
 
-import logging
+from .plot import plot_task
+from .tasks import TaskLoader
+from .utils import correct_task, criterion
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +76,7 @@ def train(
             logger.info(update_str)
 
             torch.save(model, f"{output_path}/model.pt")
-            test_plot, _ = plot_task(task, y_hat)
+            test_plot, _ = plot_task(task, y_hat, i)
             test_plot.savefig(f"{output_path}/plot.png")
 
         if clip_grad:

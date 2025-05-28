@@ -1,9 +1,9 @@
-from typing import Optional
-from motif_net.tasks import Task
-
 from dataclasses import dataclass
+from typing import Optional
 
 import torch
+
+from motif_net.tasks import Task
 
 
 @dataclass(repr=False)
@@ -321,10 +321,10 @@ class ContextIntModality1(Task):
         theta_2 = theta_2[:, 0]
 
         amp = torch.stack((amp_1, amp_2), dim=1)
-        amp_idx = torch.argmax(amp, dim=1)
+        amp_idx = torch.argmax(amp, dim=1).unsqueeze(1)
 
         theta = torch.stack((theta_1, theta_2), dim=1)
-        theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
+        theta = torch.gather(theta, 1, amp_idx)
 
         response_start = self.n_steps - self.task_periods[-1].n_steps
 
@@ -373,15 +373,15 @@ class ContextIntModality2(Task):
     ) -> None:
         """Attend to stimulus value with largest amplitude.
         Both amplitudes presented, only attend to modality 2."""
-        amp_1 = amp_1[:, 1].unsqueeze(1)
-        amp_2 = amp_2[:, 1].unsqueeze(1)
-        theta_1 = theta_1[:, 1].unsqueeze(1)
-        theta_2 = theta_2[:, 1].unsqueeze(1)
+        amp_1 = amp_1[:, 1]
+        amp_2 = amp_2[:, 1]
+        theta_1 = theta_1[:, 1]
+        theta_2 = theta_2[:, 1]
 
-        amp = torch.cat((amp_1, amp_2), dim=1)
-        amp_idx = torch.argmax(amp, dim=1)
-        theta = torch.cat((theta_1, theta_2), dim=1)
-        theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
+        amp = torch.stack((amp_1, amp_2), dim=1)
+        amp_idx = torch.argmax(amp, dim=1).unsqueeze(1)
+        theta = torch.stack((theta_1, theta_2), dim=1)
+        theta = torch.gather(theta, 1, amp_idx)
         response_start = self.n_steps - self.task_periods[-1].n_steps
         self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
@@ -430,18 +430,18 @@ class IntegrationMultiModal(Task):
         amp_2: torch.Tensor,
     ) -> None:
         """Attend to stimulus value with largest amplitude. Integrate both modalities."""
-        amp_1 = amp_1.sum(dim=1).unsqueeze(1)
-        amp_2 = amp_2.sum(dim=1).unsqueeze(1)
-        theta_1 = theta_1.sum(dim=1).unsqueeze(1)
-        theta_2 = theta_2.sum(dim=1).unsqueeze(1)
+        amp_1 = amp_1.sum(dim=1)
+        amp_2 = amp_2.sum(dim=1)
+        theta_1 = theta_1.sum(dim=1)
+        theta_2 = theta_2.sum(dim=1)
 
         # Select the largest amplitude from each stimulus
-        amp = torch.cat((amp_1, amp_2), dim=1)
-        amp_idx = torch.argmax(amp, dim=1)
+        amp = torch.stack((amp_1, amp_2), dim=1)
+        amp_idx = torch.argmax(amp, dim=1).unsqueeze(1)
 
         # Grab the stimulus angle indexed by largeset amplitude
-        theta = torch.cat((theta_1, theta_2), dim=1)
-        theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
+        theta = torch.stack((theta_1, theta_2), dim=1)
+        theta = torch.gather(theta, 1, amp_idx)
 
         # Set response period input/output
         response_start = self.n_steps - self.task_periods[-1].n_steps

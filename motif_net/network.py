@@ -1,11 +1,11 @@
+import logging
 from typing import Literal, Optional, get_args
 
-from .utils import retanh
-
-from torch import nn
-import torch
 import numpy as np
-import logging
+import torch
+from torch import nn
+
+from .utils import retanh
 
 logger = logging.getLogger(__name__)
 
