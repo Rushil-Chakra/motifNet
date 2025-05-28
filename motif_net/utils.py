@@ -3,14 +3,14 @@ from typing import Tuple
 import torch
 
 
-def criterion(z: torch.Tensor, z_hat: torch.Tensor, mask: torch.Tensor) -> float:
+def criterion(y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor) -> float:
     """Computes the loss for a model output and task.
 
     Parameters
     ----------
-    z
+    y
         The expected output for a task instance. Takes shape (T, batch_size, 3)
-    z_hat
+    y_hat
         The output of a model evaluation. Takes shape (T, batch_shape, 3)
     mask
         The masking tensor that weighs the loss during certain time periods. Take shape (T, batch_size, 3)
@@ -20,12 +20,12 @@ def criterion(z: torch.Tensor, z_hat: torch.Tensor, mask: torch.Tensor) -> float
     loss
         The computed loss for the model output and task. This does not include any regularization.
     """
-    loss = torch.mean(mask * torch.square(z - z_hat))
+    loss = torch.mean(mask * torch.square(y - y_hat), dim=1).sum()
     return loss
 
 
 # TODO: Figure out how htis factors into the training
-def correct_task(theta: torch.Tensor, z_hat: torch.Tensor) -> torch.Tensor:
+def correct_task(theta: torch.Tensor, y_hat: torch.Tensor) -> torch.Tensor:
     """Computes accuracy of a model output.
 
     This is quantified by having the correct fixation output (>0.5 or =-1) and
@@ -35,7 +35,7 @@ def correct_task(theta: torch.Tensor, z_hat: torch.Tensor) -> torch.Tensor:
     ----------
     theta
         The expected output for a give task. Takes shape (T, batch_size, 1)
-    z_hat
+    y_hat
         The output of a model evaluation. Takes shape (T, batch_size, 3)
 
     Returns
@@ -44,10 +44,10 @@ def correct_task(theta: torch.Tensor, z_hat: torch.Tensor) -> torch.Tensor:
         The average accuracy of the task.
     """
     theta = theta[-1]
-    z_hat = z_hat[-1]
+    y_hat = y_hat[-1]
     fixate = theta < 0
-    fixate_hat = z_hat[..., 0] > 0.5
-    theta_hat = torch.atan2(z_hat[..., 1], z_hat[..., 2])
+    fixate_hat = y_hat[..., 0] > 0.5
+    theta_hat = torch.atan2(y_hat[..., 1], y_hat[..., 2])
 
     dist = theta - theta_hat
     dist = torch.minimum(torch.abs(dist), 2 * torch.pi - torch.abs(dist))
