@@ -1,11 +1,10 @@
 from .tasks import TaskLoader
 
 from .utils import criterion, correct_task
+from .plot import plot_task
 
 import torch
 from torch import optim
-
-# from torch.utils.tensorboard import SummaryWriter
 
 import logging
 
@@ -14,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 def train(
     model: torch.nn.Module,
+    output_path: str,
     task_loader: TaskLoader,
     lr: float,
     l2_terms: tuple[float, float],
@@ -28,6 +28,8 @@ def train(
     ----------
     model
         Model to train
+    output_path
+        Directory to store model and progress plots
     task_loader
         ``TaskLoader`` object that generates data to train on
     lr
@@ -46,11 +48,7 @@ def train(
     """
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     device = "mps:0" if torch.backends.mps.is_available() else device
-    # if torch.cuda.device_count() > 1:
-    #     model = torch.nn.DataParallel(model)
     model.to(device)
-
-    # writer = SummaryWriter()
 
     # Maybe make optim a hyper-parameter?
     l2_w_term = l2_terms[0]
@@ -59,7 +57,7 @@ def train(
 
     prev_loss = -1
     for i in range(max_iter):
-        h_t = model.init_hidden(batch_size)
+        h_0 = model.init_hidden(batch_size)
         optimizer.zero_grad()
 
         task = task_loader.sample_task()
@@ -67,29 +65,20 @@ def train(
         y, theta = task.get_output()
         mask = task.get_mask()
 
-        y_hat, h_t = model(x, h_t)
-        activation_loss = l2_a_term * torch.square(torch.norm(h_t, p=2))
+        y_hat, h_t = model(x, h_0)
+        activation_loss = l2_a_term * torch.square(torch.linalg.vector_norm(h_t, ord=2))
         loss = criterion(y, y_hat, mask) + activation_loss
         loss.backward()
-
-        if i % 10000 == 0:
+        # 10000
+        if i % 5000 == 0:
             accuracy_i = correct_task(theta, y_hat)
             loss_i = loss.item()
-            # fig1, _ = plot.stim_plotter(
-            #     theta.detach().cpu().numpy(), z_hat.detach().cpu().numpy()
-            # )
-            # fig2, _ = plot.trial_plotter(
-            #     z.detach().cpu().numpy(),
-            #     z_hat.detach().cpu().numpy(),
-            #     task,
-            # )
-            # fig3, _ = plot.pca_plotter(hidden_state=h_t.detach().cpu().numpy())
-
-            # writer.add_scalar("Loss", loss_i, i)
-            # writer.add_scalar("Accuracy", accuracy_i, i)
-            # writer.add_figure("Plot", fig2, i)
-            update_str = f"Progress: {i/max_iter:.2%}\tLoss: {loss_i}\t Accuracy: {accuracy_i}"
+            update_str = f"Progress: {i:,} Iterations\tLoss: {loss_i}\t Accuracy: {accuracy_i}"
             logger.info(update_str)
+
+            torch.save(model, f"{output_path}/model.pt")
+            test_plot, _ = plot_task(task, y_hat)
+            test_plot.savefig(f"{output_path}/plot.png")
 
         if clip_grad:
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
@@ -101,5 +90,4 @@ def train(
 
         prev_loss = loss.item()
 
-    # writer.flush()
     return model
