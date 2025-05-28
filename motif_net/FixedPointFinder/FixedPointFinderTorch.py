@@ -15,17 +15,14 @@ https://doi.org/10.21105/joss.01003
 Please direct correspondence to mgolub@cs.washington.edu
 """
 
-import pdb
-
 import numpy as np
 import time
-from copy import deepcopy
 
 import torch
 from torch.autograd.functional import jacobian
 
-from FixedPointFinderBase import FixedPointFinderBase
-from FixedPoints import FixedPoints
+from .FixedPointFinderBase import FixedPointFinderBase
+from .FixedPoints import FixedPoints
 
 
 class FixedPointFinderTorch(FixedPointFinderBase):
@@ -63,7 +60,7 @@ class FixedPointFinderTorch(FixedPointFinderBase):
         self.torch_dtype = getattr(torch, self.dtype)
 
         # Naming conventions assume batch_first==True.
-        self._time_dim = 1 if rnn.batch_first else 0
+        self._time_dim = 0
 
     def _run_joint_optimization(self, initial_states, inputs, cond_ids=None):
         """Finds multiple fixed points via a joint optimization over multiple
@@ -93,20 +90,20 @@ class FixedPointFinderTorch(FixedPointFinderBase):
         self._print_if_verbose("\tFinding fixed points via joint optimization.")
 
         # Unsqueeze to build in time dimension (a single timestep)
-        inputs_bx1xd = torch.from_numpy(inputs).unsqueeze(TIME_DIM)
-        inputs_bx1xd = inputs_bx1xd.to(self.torch_dtype)
-        inputs_bx1xd = inputs_bx1xd.to(self.device)
+        inputs_1xbxd = torch.from_numpy(inputs).unsqueeze(TIME_DIM)
+        inputs_1xbxd = inputs_1xbxd.to(self.torch_dtype)
+        inputs_1xbxd = inputs_1xbxd.to(self.device)
 
         # Unsqueeze to promote appropriate broadcasting
-        x_1xbxd = torch.from_numpy(initial_states).unsqueeze(0)
-        x_1xbxd = x_1xbxd.to(self.torch_dtype)
-        x_1xbxd = x_1xbxd.to(self.device)
+        x_bx1xd = torch.from_numpy(initial_states)  # .unsqueeze(1)
+        x_bx1xd = x_bx1xd.to(self.torch_dtype)
+        x_bx1xd = x_bx1xd.to(self.device)
 
-        inputs_bx1xd.requires_grad = False
-        x_1xbxd.requires_grad = True
+        inputs_1xbxd.requires_grad = False
+        x_bx1xd.requires_grad = True
 
         init_lr = 0.05
-        optimizer = torch.optim.Adam([x_1xbxd], lr=self.lr_init)
+        optimizer = torch.optim.Adam([x_bx1xd], lr=self.lr_init)
 
         # scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
         #     step_size=500,
@@ -127,9 +124,9 @@ class FixedPointFinderTorch(FixedPointFinderBase):
 
         while True:
 
-            F_x_bx1xd, F_x_1xbxd = self.rnn(inputs_bx1xd, x_1xbxd)
+            F_x_1xbxd, F_x_bx1xd = self.rnn(inputs_1xbxd, x_bx1xd)
 
-            dx_bxd = torch.squeeze(x_1xbxd - F_x_1xbxd)
+            dx_bxd = torch.squeeze(x_bx1xd.unsqueeze(0) - F_x_bx1xd)
             q_b = 0.5 * torch.sum(torch.square(dx_bxd), axis=1)
             q_scalar = torch.mean(q_b)
             dq_b = torch.abs(q_b - q_prev_b)
@@ -172,10 +169,10 @@ class FixedPointFinderTorch(FixedPointFinderBase):
             )
 
         # remove extra dims
-        xstar = x_1xbxd.squeeze(0)
+        xstar = x_bx1xd.squeeze(0)
         xstar = xstar.detach().cpu().numpy()
 
-        F_xstar = F_x_1xbxd.squeeze(0)
+        F_xstar = F_x_bx1xd.squeeze(0)
         F_xstar = F_xstar.detach().cpu().numpy()
 
         # Indicate same n_iters for each initialization (i.e., joint optimization)
@@ -278,7 +275,7 @@ class FixedPointFinderTorch(FixedPointFinderBase):
             iii) Total time: 5.57ms.
             """
 
-            inputs_bx1xd = inputs_bxd.unsqueeze(TIME_DIM)  # Used locally--ugly but necessary.
+            inputs_1xbxd = inputs_bxd.unsqueeze(TIME_DIM)  # Used locally--ugly but necessary.
 
             def forward_fn(x_bxd):
                 """Computes x(t+1) as a function of x(t) under fixed inputs.
@@ -288,9 +285,9 @@ class FixedPointFinderTorch(FixedPointFinderBase):
                 # Unsqueeze to promote appropriate broadcasting
                 x_1xbxd = x_bxd.unsqueeze(0)
 
-                _, F_x_1xbxd = self.rnn(inputs_bx1xd, x_1xbxd)
+                _, F_x_bx1xd = self.rnn(inputs_1xbxd, x_1xbxd)
 
-                F_x_bxd = F_x_1xbxd.squeeze(0)
+                F_x_bxd = F_x_bx1xd.squeeze(0)
                 return F_x_bxd
 
             def batch_jacobian(f, x):
@@ -321,15 +318,15 @@ class FixedPointFinderTorch(FixedPointFinderBase):
             # which are always 0.
             # To confirm this, see that J_bxbxdxd[i, j, :, :]==0 for all i != j.
 
-            inputs_bx1xd = inputs_bxd.unsqueeze(TIME_DIM)  # Used locally--ugly but necessary.
+            inputs_1xbxd = inputs_bxd.unsqueeze(TIME_DIM)  # Used locally--ugly but necessary.
 
             def forward_fn(x_bxd):
                 # Unsqueeze to promote appropriate broadcasting
                 x_1xbxd = x_bxd.unsqueeze(0)
 
-                _, F_x_1xbxd = self.rnn(inputs_bx1xd, x_1xbxd)
+                _, F_x_bx1xd = self.rnn(inputs_1xbxd, x_1xbxd)
 
-                F_x_bxd = F_x_1xbxd.squeeze(0)
+                F_x_bxd = F_x_bx1xd.squeeze(0)
                 return F_x_bxd
 
             J_bxdxbxd = jacobian(forward_fn, x_bxd, create_graph=False)
@@ -342,11 +339,11 @@ class FixedPointFinderTorch(FixedPointFinderBase):
             def forward_fn(x_d):
                 # Unsqueeze to promote appropriate broadcasting
                 x_1xbxd = x_d.unsqueeze(0).unsqueeze(1)
-                inputs_bx1xd = inputs_d.unsqueeze(0).unsqueeze(1)
+                inputs_1xbxd = inputs_d.unsqueeze(0).unsqueeze(1)
 
-                _, F_x_1xbxd = self.rnn(inputs_bx1xd, x_1xbxd)
+                _, F_x_bx1xd = self.rnn(inputs_1xbxd, x_1xbxd)
 
-                F_x_d = F_x_1xbxd.squeeze()
+                F_x_d = F_x_bx1xd.squeeze()
                 return F_x_d
 
             J_list = []

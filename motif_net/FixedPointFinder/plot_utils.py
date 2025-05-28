@@ -22,6 +22,7 @@ def plot_fps(
     plot_stop_time=None,
     mode_scale=0.25,
     fig=None,
+    title=None,
 ):
     """Plots a visualization and analysis of the unique fixed points.
 
@@ -109,6 +110,7 @@ def plot_fps(
             pca.fit(fps.xstar)
 
         ax = fig.add_subplot(111, projection="3d")
+        ax.set_title(title)
         ax.set_xlabel("PC 1", fontweight=FONT_WEIGHT)
         ax.set_zlabel("PC 3", fontweight=FONT_WEIGHT)
         ax.set_ylabel("PC 2", fontweight=FONT_WEIGHT)
@@ -141,9 +143,9 @@ def plot_fps(
     for init_idx in range(n_inits):
         plot_fixed_point(ax, fps[init_idx], pca, scale=mode_scale)
 
-    plt.ion()
+    # plt.ion()
     plt.show()
-    plt.pause(1e-10)
+    # plt.pause(1e-10)
 
     return fig
 
