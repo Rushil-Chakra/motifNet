@@ -246,7 +246,7 @@ class Task:
         task_input_array = torch.cat([period.input_array for period in self.task_periods], dim=0)
         if self.gamma is not None:
             task_input_array += (
-                torch.randn(task_input_array.size()) * np.sqrt(2 / (self.gamma)) * 0.1
+                torch.randn(task_input_array.size()) * np.sqrt(2 / self.gamma) * 0.1
             )
         task_input_array = task_input_array.to(self.device)
         return task_input_array
