@@ -1,5 +1,5 @@
 _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
-timeout_min: 1440 #24 hours
+timeout_min: 7200 #5 days
 gpus_per_task: 1
 mem_gb: 32
 name: ${hydra.job.name}/${hydra.job.override_dirname}

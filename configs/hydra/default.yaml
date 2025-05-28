@@ -1,7 +1,7 @@
 defaults:
+  - override launcher: submitit_slurm
   - override hydra_logging: colorlog
   - override job_logging: colorlog
-  - override launcher: submitit_slurm
 
 run:
   dir: ../models/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
