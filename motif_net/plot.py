@@ -1,55 +1,21 @@
-from typing import Optional
+from typing import Callable, Optional
 
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
+import pandas as pd
+import torch
+from matplotlib import color_sequences
 from matplotlib.patches import Rectangle
 
-from matplotlib.cm import Pastel2
-
-from motif_net import Task, TaskLoader
-from experiments.task_init import TASK_DICT
-
-import torch
+from motif_net import Task
 
 
-def _build_output_df(
-    theta: np.array, time_spans: dict, label: str, radius: int = 1
-) -> pd.DataFrame:
-    """Builds a dataframe for plotting purposes.
-    Columns are theta (in rad), radius (0 if theta is 0), and label (what type of data)
-
-    Parameters
-    ----------
-    theta
-        A 1D numpy array of the angle at each time step
-    time_spans
-        Dictionary containing task period names and start and stop times
-    label
-        The label to designate the data type (input, output, estimation, etc.)
-    radius
-        The radius that will be plotted. By default this is 1, but will go to 0
-        if theta is 0. This is due to the low probability that the 0 angle is actually
-        chosen.
-
-    Returns
-    -------
-    df
-        A dataframe formatted for the task/output plotting function
-    """
-    periods = list(time_spans.keys())
-    df = pd.DataFrame({"theta": np.max((theta, np.zeros(theta.shape)), axis=0)})
-    for period in periods:
-        df.loc[time_spans[period]["start"] : time_spans[period]["end"], "period"] = period
-    df["radius"] = radius
-    df.loc[df["theta"] == 0, "radius"] = 0
-    df["label"] = label
-
-    return df
-
-
-def _get_positive_theta(sin: np.array, cos: np.array) -> np.array:
+def _get_positive_theta(sin: npt.NDArray, cos: npt.NDArray) -> npt.NDArray:
     """Takes a set of x and y coordinates and returns positive angles (in rad)
+
+    This is necessary so as non-stimulus blocks have theta set to -1, so the
+    plotter assumes theta < 0 is at the fixation spot (0, 0)
 
     Note
     ----
@@ -74,9 +40,74 @@ def _get_positive_theta(sin: np.array, cos: np.array) -> np.array:
     return theta
 
 
+def _build_output_df(time_spans: dict) -> Callable[[npt.NDArray, str, int], pd.DataFrame]:
+    """Closure to build a dataframe where ``time_spans`` is not paramteerized.
+
+    Parameters
+    time_spans
+        Dictionary containing task period names and start and stop times
+
+    Returns
+    -------
+    build_data_df
+        function that creates the dataframe.
+    """
+
+    def build_data_df(theta: npt.NDArray, label: str, radius: int = 1) -> pd.DataFrame:
+        """Builds a dataframe for plotting purposes.
+        Columns are theta (in rad), radius (0 if theta is 0), and label (what type of data)
+
+        Parameters
+        ----------
+        theta
+            A 1D numpy array of the angle at each time step
+        label
+            The label to designate the data type (input, output, estimation, etc.)
+        radius
+            The radius that will be plotted. By default this is 1, but will go to 0
+            if theta is 0. This is due to the low probability that the 0 angle is actually
+            chosen.
+
+        Returns
+        -------
+        df
+            A dataframe formatted for the task/output plotting function
+        """
+        periods = list(time_spans.keys())
+        df = pd.DataFrame({"theta": np.max((theta, np.zeros(theta.shape)), axis=0)})
+        for period in periods:
+            df.loc[time_spans[period]["start"] : time_spans[period]["end"], "period"] = period
+        df["radius"] = radius
+        df.loc[df["theta"] == 0, "radius"] = 0
+        df["label"] = label
+
+        return df
+
+    return build_data_df
+
+
+def _get_radius(x1: npt.NDArray, x2) -> npt.NDArray:
+    """Gets the radius from the xy coordinates of points
+
+    Parameters
+    ----------
+    x1
+        np array of either x or y coords
+    x2
+        np array of either y or x coords
+
+    Returns
+    -------
+    radius
+        A 1D np array of radii
+    """
+    radius = np.sqrt(np.square(x1) + np.square(x2))
+    return radius
+
+
 def generate_data(
     task: Task, y_hat: Optional[torch.Tensor] = None
-) -> tuple[np.array, pd.DataFrame]:
+) -> tuple[npt.NDArray, pd.DataFrame]:
     """Takes a task and optionally a model estimate and plots for review.
 
     Note that this takes the first index for batched data.
@@ -98,21 +129,25 @@ def generate_data(
     time_spans = task.get_time_spans()
     x = task.get_input_array().cpu().numpy()
     y, theta = task.get_output()
+    build_data_df = _build_output_df(time_spans)
 
     x_fixation = np.expand_dims(x[:, 0, 0], 1)
-    x_mod_1 = x[:, 0, 1:3]
-    x_mod_2 = x[:, 0, 3:5]
-    x_mod_1_theta = _get_positive_theta(x_mod_1[:, 0], x_mod_1[:, 1])
-    x_mod_2_theta = _get_positive_theta(x_mod_2[:, 0], x_mod_2[:, 1])
+    x_mod1 = x[:, 0, 1:3]
+    x_mod2 = x[:, 0, 3:5]
+    x_mod1_theta = _get_positive_theta(x_mod1[:, 0], x_mod1[:, 1])
+    x_mod2_theta = _get_positive_theta(x_mod2[:, 0], x_mod2[:, 1])
 
-    df_mod1 = _build_output_df(x_mod_1_theta, time_spans, "mod1")
-    df_mod2 = _build_output_df(x_mod_2_theta, time_spans, "mod2")
+    x_mod1_radius = _get_radius(x_mod1[:, 0], x_mod1[:, 1])
+    x_mod2_radius = _get_radius(x_mod2[:, 0], x_mod2[:, 1])
+
+    df_mod1 = build_data_df(x_mod1_theta, "mod1", x_mod1_radius)
+    df_mod2 = build_data_df(x_mod2_theta, "mod2", x_mod2_radius)
 
     theta = theta[:, 0].cpu().numpy()
     y = y[:, 0, :].cpu().numpy()
     y_fixation = np.expand_dims(y[:, 0], 1)
-    radius = np.sqrt(np.square(y[:, 1]) + np.square(y[:, 2]))
-    df_y = _build_output_df(theta, time_spans, "y", radius)
+    radius = _get_radius(y[:, 1], y[:, 2])
+    df_y = build_data_df(theta, "y", radius)
 
     fixation = np.concat([x_fixation, y_fixation], axis=1)
     df_agg = pd.concat([df_mod1, df_mod2, df_y])
@@ -120,18 +155,20 @@ def generate_data(
     if y_hat is not None:
         y_hat = y_hat[:, 0, :].detach().cpu().numpy()
 
-        y_hat_fixation = np.expand_dims(y_hat[:, 0, 0], 1)
+        y_hat_fixation = np.expand_dims(y_hat[:, 0], 1)
         fixation = np.concat([fixation, y_hat_fixation], axis=1)
         y_hat_theta = _get_positive_theta(y_hat[:, 1], y_hat[:, 2])
-        radius = np.sqrt(np.square(y_hat[:, 1]) + np.square(y_hat[:, 2]))
+        radius = _get_radius(y_hat[:, 1], y_hat[:, 2])
 
-        df_y_hat = _build_output_df(y_hat_theta, time_spans, "y_hat", radius)
+        df_y_hat = build_data_df(y_hat_theta, "y_hat", radius)
         df_agg = pd.concat([df_agg, df_y_hat])
 
     return fixation, df_agg
 
 
-def plot_task(task: Task, y_hat: Optional[torch.Tensor]) -> tuple[plt.Figure, dict]:
+def plot_task(
+    task: Task, y_hat: Optional[torch.Tensor], iterations: int | None = None
+) -> tuple[plt.figure.Figure, dict]:
     """Plotting function to help evaluate or debug task data or model performance.
 
     Parameters
@@ -140,6 +177,8 @@ def plot_task(task: Task, y_hat: Optional[torch.Tensor]) -> tuple[plt.Figure, di
         Particular task instance to plot
     y_hat
         Model estimation
+    iterations
+        The number of iterations the plot was generated after. Used for plot subtitle
 
     Returns
     -------
@@ -166,11 +205,14 @@ def plot_task(task: Task, y_hat: Optional[torch.Tensor]) -> tuple[plt.Figure, di
         layout, per_subplot_kw=projection, height_ratios=heights, figsize=(24, 16)
     )
     fig.tight_layout()
+    title = task.name + (f" - Iterations: {iterations:,}" if iterations is not None else "")
+    fig.suptitle(title)
+    cmap = color_sequences["Pastel20"]
 
     # plot fixation
     axd["fixation"].plot(fixation)
     for i, (period, times) in enumerate(time_spans.items()):
-        axd["fixation"].axvspan(times["start"], times["end"], 0, 1, color=Pastel2(i), alpha=0.5)
+        axd["fixation"].axvspan(times["start"], times["end"], 0, 1, color=cmap(i), alpha=0.5)
         midpoint = (times["start"] + times["end"]) / 2
         label = f"{period}\nt = {times['end'] - times['start']}"
         axd["fixation"].text(midpoint, 0.05, label, ha="center", va="bottom", size="xx-large")
@@ -180,20 +222,29 @@ def plot_task(task: Task, y_hat: Optional[torch.Tensor]) -> tuple[plt.Figure, di
     axd["fixation"].set_xticks(xticks)
     axd["fixation"].set_xlim(0, time_spans[list(time_spans.keys())[-1]]["end"])
 
-    legend_label = ["input", "expected" "estimate"] if "y_hat" in labels else ["input", "expected"]
+    legend_label = (
+        ["input", "expected", "estimate"] if "y_hat" in labels else ["input", "expected"]
+    )
     axd["fixation"].legend(legend_label, loc="upper right", fontsize="xx-large")
 
     # Plot tasks and periods
+    color = {
+        "mod1": "tab:blue",
+        "mod2": "tab:blue",
+        "y": "tab:orange",
+        "y_hat": "tab:green",
+    }
     for label in labels:
         label_df = data.loc[data["label"] == label]
+
         for i, period in enumerate(time_spans.keys()):
             period_df = label_df.loc[label_df["period"] == period]
-            marker = "o" if label is "y_hat" else "x"
+            marker = "o" if label == "y_hat" else "x"
             axd[f"{label}_{period}"].scatter(
-                period_df["theta"], period_df["radius"], s=64, marker=marker
+                period_df["theta"], period_df["radius"], s=64, marker=marker, c=color[label]
             )
             axd[f"{label}_{period}"].set(yticks=[0, 1, 2], yticklabels=[], xticklabels=[])
-            axd[f"{label}_{period}"].patch.set(facecolor=Pastel2(i, alpha=0.5))
+            axd[f"{label}_{period}"].patch.set(facecolor=cmap(i, alpha=0.5))
 
         # Add seperation for each data type
         bbox = axd[f"{label}_context"].get_position(original=True)
