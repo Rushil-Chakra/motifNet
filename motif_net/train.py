@@ -2,6 +2,7 @@ import logging
 
 import torch
 from torch import optim
+import matplotlib.pyplot as plt
 
 from .plot import plot_task
 from .tasks import TaskLoader
@@ -78,6 +79,7 @@ def train(
             torch.save(model, f"{output_path}/model.pt")
             test_plot, _ = plot_task(task, y_hat, i)
             test_plot.savefig(f"{output_path}/plot.png")
+            plt.close(test_plot)
 
         if clip_grad:
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
@@ -89,4 +91,5 @@ def train(
 
         prev_loss = loss.item()
 
+    logger.info("training complete")
     return model
