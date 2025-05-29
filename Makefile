@@ -10,6 +10,43 @@ PYTHON_INTERPRETER = python
 # COMMANDS                                                                      #
 #################################################################################
 
+## submit all single task experiments
+.PHONY: run-single
+run-single:
+	if [ ${CONDA_DEFAULT_ENV} != 'motifNet' ]; then\
+		conda activate motifNet;\
+	fi;
+	cd experiments && python experiment.py experiments=\
+	ContextIntModality1,\
+	ContextIntModality2,\
+	DelayedAnti,\
+	DelayedPro,\
+	IntegrationModality1,\
+	IntegrationModality2,\
+	IntegrationMultiModal,\
+	MemoryAnti,\
+	MemoryPro,\
+	ReactAnti,\
+	ReactPro,\
+	ReactCategoryAnti,\
+	ReactCategoryPro,\
+	ReactMatch2Sample,\
+	ReactNonMatch2Sample
+
+
+## submit all dual task experiments
+.PHONY: run-dual
+run-dual:
+	if [ ${CONDA_DEFAULT_ENV} != 'motifNet' ]; then\
+		conda activate motifNet; \
+	fi; \
+	cd experiments && python experiment.py experiments=\
+	ContextIntModality,\
+	Delayed,\
+	Memory,\
+	React,\
+	ReactCategory
+
 
 ## Install Python dependencies
 .PHONY: requirements
