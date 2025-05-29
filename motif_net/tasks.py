@@ -1,5 +1,7 @@
 from typing import Literal, Optional, get_args
 
+from dataclasses import dataclass
+
 import numpy as np
 import torch
 
@@ -24,16 +26,16 @@ TASK_VECTOR_DEFINITION = [
 period_name_type = Literal["context", "stimulus1", "stimulus2", "memory1", "memory2", "response"]
 
 
+@dataclass(repr=False)
 class TaskPeriod:
-    def __init__(
-        self,
-        period_name: period_name_type,
-        task_name: str,
-        min_t: int,
-        max_t: int,
-        dt: int = 20,
-        batch_size: int = 1,
-    ) -> None:
+    period_name: period_name_type
+    task_name: str
+    min_t: int
+    max_t: int
+    dt: int = 20
+    batch_size: int = 1
+
+    def __post_init__(self) -> None:
         """Definition for each task period.
 
         A set of task periods make up a single ``Task``.
@@ -53,20 +55,19 @@ class TaskPeriod:
         batch_size
             Number of trials per batch.
         """
-        if period_name not in get_args(period_name_type):
+        if self.period_name not in get_args(period_name_type):
             raise ValueError("Period name not found.")
-        if task_name not in TASK_VECTOR_DEFINITION:
+        if self.task_name not in TASK_VECTOR_DEFINITION:
             raise ValueError("Task name not found")
-        self.period_name = period_name
 
         # Gets an int instead of int-typed Tuple
-        self.n_steps = (torch.randint(min_t, max_t, (1,)) / dt).int().item()
-        fixation = 0 if period_name == "response" else 1
+        self.n_steps = (torch.randint(self.min_t, self.max_t, (1,)) / self.dt).int().item()
+        fixation = 0 if self.period_name == "response" else 1
 
-        self.input_array = torch.zeros((self.n_steps, batch_size, 20))
+        self.input_array = torch.zeros((self.n_steps, self.batch_size, 20))
         self.input_array[..., 0] = fixation
 
-        task_one_hot_idx = 5 + TASK_VECTOR_DEFINITION.index(task_name)
+        task_one_hot_idx = 5 + TASK_VECTOR_DEFINITION.index(self.task_name)
         self.input_array[..., task_one_hot_idx] = 1
 
     def __repr__(self):
