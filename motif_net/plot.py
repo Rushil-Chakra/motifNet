@@ -168,7 +168,7 @@ def generate_data(
 
 def plot_task(
     task: Task, y_hat: Optional[torch.Tensor], iterations: int | None = None
-) -> tuple[plt.figure.Figure, dict]:
+) -> tuple[plt.Figure, dict]:
     """Plotting function to help evaluate or debug task data or model performance.
 
     Parameters
