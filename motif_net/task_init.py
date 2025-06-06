@@ -10,12 +10,13 @@ from motif_net.tasks import Task
 class DelayedPro(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("DelayedPro", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch()
+        theta = self.generate_stimulus_batch(angle=self.angle)
         modality = self.generate_modality()
         stim_kwargs = {"theta": theta, "modality": modality}
 
@@ -37,11 +38,12 @@ class DelayedPro(Task):
 class DelayedAnti(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("DelayedAnti", self.batch_size, self.dt, self.gamma)
-        theta = self.generate_stimulus_batch()
+        theta = self.generate_stimulus_batch(self.angle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -64,12 +66,13 @@ class DelayedAnti(Task):
 class MemoryPro(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("MemoryPro", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch()
+        theta = self.generate_stimulus_batch(self.angle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -92,12 +95,13 @@ class MemoryPro(Task):
 class MemoryAnti(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("MemoryAnti", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch()
+        theta = self.generate_stimulus_batch(self.angle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -121,12 +125,13 @@ class MemoryAnti(Task):
 class ReactPro(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("ReactPro", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch()
+        theta = self.generate_stimulus_batch(self.angle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -149,12 +154,13 @@ class ReactPro(Task):
 class ReactAnti(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("ReactAnti", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch()
+        theta = self.generate_stimulus_batch(self.angle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -178,7 +184,8 @@ class ReactAnti(Task):
 class IntegrationModality1(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("IntegrationModality1", self.batch_size, self.dt, self.gamma)
@@ -189,8 +196,8 @@ class IntegrationModality1(Task):
 
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
-        theta_1 = self.generate_stimulus_batch()
-        theta_2 = self.generate_stimulus_batch()
+        theta_1 = self.generate_stimulus_batch(self.angle)
+        theta_2 = self.generate_stimulus_batch(self.angle)
         modality = torch.ones((self.batch_size,), dtype=int)
 
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1}
@@ -227,7 +234,8 @@ class IntegrationModality1(Task):
 class IntegrationModality2(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("IntegrationModality2", self.batch_size, self.dt, self.gamma)
@@ -238,8 +246,8 @@ class IntegrationModality2(Task):
 
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
-        theta_1 = self.generate_stimulus_batch()
-        theta_2 = self.generate_stimulus_batch()
+        theta_1 = self.generate_stimulus_batch(self.angle)
+        theta_2 = self.generate_stimulus_batch(self.angle)
         modality = torch.ones((self.batch_size,), dtype=int) * 2
 
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1}
@@ -276,7 +284,8 @@ class IntegrationModality2(Task):
 class ContextIntModality1(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("ContextIntModality1", self.batch_size, self.dt, self.gamma)
@@ -289,8 +298,8 @@ class ContextIntModality1(Task):
         amp_2 = amp_mean - amp_var
 
         # Generate both modalities at once
-        theta_1 = self.generate_stimulus_batch(n_mod=2)
-        theta_2 = self.generate_stimulus_batch(n_mod=2)
+        theta_1 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
+        theta_2 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
         modality = torch.ones((self.batch_size,), dtype=int)
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1, "n_mod": 2}
         stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2, "n_mod": 2}
@@ -336,7 +345,8 @@ class ContextIntModality1(Task):
 class ContextIntModality2(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("ContextIntModality2", self.batch_size, self.dt, self.gamma)
@@ -348,8 +358,8 @@ class ContextIntModality2(Task):
         amp_2 = amp_mean - amp_var
 
         # Generate both modalities at once
-        theta_1 = self.generate_stimulus_batch(n_mod=2)
-        theta_2 = self.generate_stimulus_batch(n_mod=2)
+        theta_1 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
+        theta_2 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
         modality = torch.ones((self.batch_size,), dtype=int)
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1, "n_mod": 2}
         stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2, "n_mod": 2}
@@ -391,7 +401,8 @@ class ContextIntModality2(Task):
 class IntegrationMultiModal(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("IntegrationMultiModal", self.batch_size, self.dt, self.gamma)
@@ -403,8 +414,8 @@ class IntegrationMultiModal(Task):
         amp_2 = amp_mean - amp_var
 
         # Generate both modalities at once
-        theta_1 = self.generate_stimulus_batch(n_mod=2)
-        theta_2 = self.generate_stimulus_batch(n_mod=2)
+        theta_1 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
+        theta_2 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
         modality = torch.ones((self.batch_size,), dtype=int)
 
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1, "n_mod": 2}
@@ -453,7 +464,8 @@ class IntegrationMultiModal(Task):
 class ReactMatch2Sample(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("ReactMatch2Sample", self.batch_size, self.dt, self.gamma)
@@ -464,8 +476,8 @@ class ReactMatch2Sample(Task):
         offset = (2 * torch.pi - torch.pi / 5) * torch.rand((self.batch_size, 1)) + torch.pi / 10
         theta_2 = theta_1 + offset * torch.randint(0, 2, (self.batch_size, 1))
 
-        mod_1 = self.generate_modality()
-        mod_2 = self.generate_modality()
+        mod_1 = self.generate_modality(angle=self.angle)
+        mod_2 = self.generate_modality(angle=self.angle)
 
         stimulus1_kwargs = {"theta": theta_1, "modality": mod_1}
         stimulus2_kwargs = {"theta": theta_2, "modality": mod_2}
@@ -530,13 +542,14 @@ class ReactNonMatch2Sample(Task):
 class ReactCategoryPro(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("ReactCategoryPro", self.batch_size, self.dt, self.gamma)
 
-        theta_1 = self.generate_stimulus_batch()
-        theta_2 = self.generate_stimulus_batch()
+        theta_1 = self.generate_stimulus_batch(self.angle)
+        theta_2 = self.generate_stimulus_batch(self.angle)
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()
 
@@ -567,13 +580,14 @@ class ReactCategoryPro(Task):
 class ReactCategoryAnti(Task):
     batch_size: int = 1
     dt: int = 20
-    gamma: Optional[float] = None
+    gamma: float | None = None
+    angle: float | None = None
 
     def __post_init__(self) -> None:
         super().__init__("ReactCategoryAnti", self.batch_size, self.dt, self.gamma)
 
-        theta_1 = self.generate_stimulus_batch()
-        theta_2 = self.generate_stimulus_batch()
+        theta_1 = self.generate_stimulus_batch(self.angle)
+        theta_2 = self.generate_stimulus_batch(self.angle)
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()
 
