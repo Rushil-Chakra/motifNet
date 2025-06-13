@@ -5,7 +5,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import torch
-from matplotlib import color_sequences
+from matplotlib.cm import Pastel2
 from matplotlib.patches import Rectangle
 
 from motif_net import Task
@@ -207,7 +207,7 @@ def plot_task(
     fig.tight_layout()
     title = task.name + (f" - Iterations: {iterations:,}" if iterations is not None else "")
     fig.suptitle(title)
-    cmap = color_sequences["Pastel20"]
+    cmap = Pastel2
 
     # plot fixation
     axd["fixation"].plot(fixation)
