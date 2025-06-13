@@ -22,7 +22,6 @@ def criterion(y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor) -> float
     return loss
 
 
-# TODO: Figure out how htis factors into the training
 def correct_task(theta: torch.Tensor, y_hat: torch.Tensor) -> torch.Tensor:
     """Computes accuracy of a model output.
 
