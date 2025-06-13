@@ -177,7 +177,7 @@ class Task:
             name_str += f"{task_period}\n"
         return name_str
 
-    def generate_stimulus_batch(self, n_mod=1, angle: float | None = None) -> torch.Tensor:
+    def generate_stimulus_batch(self, n_mod: int = 1, angle: float | None = None) -> torch.Tensor:
         """Create a batch of angles in radians as an input for a task period.
 
         Parameters
