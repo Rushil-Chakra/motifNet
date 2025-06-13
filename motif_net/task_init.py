@@ -3,7 +3,7 @@ from typing import Optional
 
 import torch
 
-from motif_net.tasks import Task
+from .tasks import Task
 
 
 @dataclass(repr=False)
@@ -43,7 +43,7 @@ class DelayedAnti(Task):
 
     def __post_init__(self) -> None:
         super().__init__("DelayedAnti", self.batch_size, self.dt, self.gamma)
-        theta = self.generate_stimulus_batch(self.angle)
+        theta = self.generate_stimulus_batch(angle=self.angle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -72,7 +72,7 @@ class MemoryPro(Task):
     def __post_init__(self) -> None:
         super().__init__("MemoryPro", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch(self.angle)
+        theta = self.generate_stimulus_batch(angle=self.angle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -101,7 +101,7 @@ class MemoryAnti(Task):
     def __post_init__(self) -> None:
         super().__init__("MemoryAnti", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch(self.angle)
+        theta = self.generate_stimulus_batch(angle=self.angle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -131,7 +131,7 @@ class ReactPro(Task):
     def __post_init__(self) -> None:
         super().__init__("ReactPro", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch(self.angle)
+        theta = self.generate_stimulus_batch(angle=self.angle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -160,7 +160,7 @@ class ReactAnti(Task):
     def __post_init__(self) -> None:
         super().__init__("ReactAnti", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch(self.angle)
+        theta = self.generate_stimulus_batch(angle=self.angle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -192,12 +192,16 @@ class IntegrationModality1(Task):
 
         # Using values from code
         amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
-        amp_var = 1.6 * torch.rand((self.batch_size, 1)) - 0.8
-
+        amp_cohesion_vars = torch.Tensor([0.08, 0.16, 0.32])
+        amp_cohesion_sign = torch.Tensor([-1, 1])
+        amp_var = (
+            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size,))]
+            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size))]
+        )
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
-        theta_1 = self.generate_stimulus_batch(self.angle)
-        theta_2 = self.generate_stimulus_batch(self.angle)
+        theta_1 = self.generate_stimulus_batch(angle=self.angle)
+        theta_2 = self.generate_stimulus_batch(angle=self.angle)
         modality = torch.ones((self.batch_size,), dtype=int)
 
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1}
@@ -242,12 +246,17 @@ class IntegrationModality2(Task):
 
         # Using values from code
         amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
-        amp_var = 1.6 * torch.rand((self.batch_size, 1)) - 0.8
+        amp_cohesion_vars = torch.Tensor([0.08, 0.16, 0.32])
+        amp_cohesion_sign = torch.Tensor([-1, 1])
+        amp_var = (
+            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size,))]
+            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size))]
+        )
 
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
-        theta_1 = self.generate_stimulus_batch(self.angle)
-        theta_2 = self.generate_stimulus_batch(self.angle)
+        theta_1 = self.generate_stimulus_batch(angle=self.angle)
+        theta_2 = self.generate_stimulus_batch(angle=self.angle)
         modality = torch.ones((self.batch_size,), dtype=int) * 2
 
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1}
@@ -291,9 +300,13 @@ class ContextIntModality1(Task):
         super().__init__("ContextIntModality1", self.batch_size, self.dt, self.gamma)
 
         # Using values from code
-        # matrix math means I can set both modalities at once
-        amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
-        amp_var = 1.6 * torch.rand((self.batch_size, 2)) - 0.8
+        amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
+        amp_cohesion_vars = torch.Tensor([0.08, 0.16, 0.32])
+        amp_cohesion_sign = torch.Tensor([-1, 1])
+        amp_var = (
+            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size,))]
+            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size))]
+        )
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
 
@@ -352,8 +365,13 @@ class ContextIntModality2(Task):
         super().__init__("ContextIntModality2", self.batch_size, self.dt, self.gamma)
 
         # Using values from code
-        amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
-        amp_var = 1.6 * torch.rand((self.batch_size, 2)) - 0.8
+        amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
+        amp_cohesion_vars = torch.Tensor([0.08, 0.16, 0.32])
+        amp_cohesion_sign = torch.Tensor([-1, 1])
+        amp_var = (
+            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size,))]
+            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size))]
+        )
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
 
@@ -408,8 +426,13 @@ class IntegrationMultiModal(Task):
         super().__init__("IntegrationMultiModal", self.batch_size, self.dt, self.gamma)
 
         # Using values from paper code
-        amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
-        amp_var = 1.6 * torch.rand((self.batch_size, 2)) - 0.8
+        amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
+        amp_cohesion_vars = torch.Tensor([0.08, 0.16, 0.32])
+        amp_cohesion_sign = torch.Tensor([-1, 1])
+        amp_var = (
+            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size,))]
+            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size))]
+        )
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
 
@@ -473,7 +496,7 @@ class ReactMatch2Sample(Task):
         theta_1 = self.generate_stimulus_batch()
         # add minimum [pi/10, 2*pi - pi/10] to avoid falling within acceptable bound
         # Some of these will be set to be the same as the first stimulus randomly
-        offset = (2 * torch.pi - torch.pi / 5) * torch.rand((self.batch_size, 1)) + torch.pi / 10
+        offset = (2 * torch.pi - torch.pi / 10) * torch.rand((self.batch_size, 1)) + torch.pi / 10
         theta_2 = theta_1 + offset * torch.randint(0, 2, (self.batch_size, 1))
 
         mod_1 = self.generate_modality(angle=self.angle)
@@ -548,8 +571,8 @@ class ReactCategoryPro(Task):
     def __post_init__(self) -> None:
         super().__init__("ReactCategoryPro", self.batch_size, self.dt, self.gamma)
 
-        theta_1 = self.generate_stimulus_batch(self.angle)
-        theta_2 = self.generate_stimulus_batch(self.angle)
+        theta_1 = self.generate_stimulus_batch(angle=self.angle)
+        theta_2 = self.generate_stimulus_batch(angle=self.angle)
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()
 
@@ -586,8 +609,8 @@ class ReactCategoryAnti(Task):
     def __post_init__(self) -> None:
         super().__init__("ReactCategoryAnti", self.batch_size, self.dt, self.gamma)
 
-        theta_1 = self.generate_stimulus_batch(self.angle)
-        theta_2 = self.generate_stimulus_batch(self.angle)
+        theta_1 = self.generate_stimulus_batch(angle=self.angle)
+        theta_2 = self.generate_stimulus_batch(angle=self.angle)
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()
 

@@ -7,7 +7,7 @@ import hydra
 import torch
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import OmegaConf
-from task_init import TASK_DICT
+from motif_net.task_init import TASK_DICT
 
 from motif_net.FixedPointFinder import FixedPointFinderTorch as FixedPointFinder
 from motif_net.FixedPointFinder import plot_fps
