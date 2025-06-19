@@ -4,10 +4,12 @@ Supports FixedPointFinder
 Written for Python 3.8.17
 @ Matt Golub, October 2018
 Please direct correspondence to mgolub@cs.washington.edu
+
+Note that I have changed some of these functions to suit my [time, batch, states] format
+and extra plotting features
 """
 
 import numpy as np
-import pdb
 
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
@@ -16,6 +18,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 def plot_fps(
     fps,
+    output,
+    pca_index: tuple[int, int] = (1, 2),
     state_traj=None,
     plot_batch_idx=None,
     plot_start_time=0,
@@ -46,7 +50,13 @@ def plot_fps(
     Args:
         fps: a FixedPoints object. See FixedPoints.py.
 
-        state_traj (optional): [n_batch x n_time x n_states] numpy
+        output: [n_time x n_batch x n_outputs] numpy array.
+        Contains the example outputs of RNN.
+
+        pca_index (optional): The components of the PCA to plot.
+        Must be less than 3.
+
+        state_traj (optional): [n_time x n_batch x n_states] numpy
         array or LSTMStateTuple with .c and .h as
         [n_batch x n_time x n_states/2] numpy arrays. Contains example
         trials of RNN state trajectories.
@@ -83,8 +93,8 @@ def plot_fps(
 
     if state_traj is not None:
 
-        state_traj_bxtxd = state_traj
-        [n_batch, n_time, n_states] = state_traj_bxtxd.shape
+        state_traj_txbxd = state_traj
+        [n_time, n_batch, n_states] = state_traj_txbxd.shape
 
         # Ensure plot_start_time >= 0
         plot_start_time = np.max([plot_start_time, 0])
@@ -104,21 +114,17 @@ def plot_fps(
         pca = PCA(n_components=3)
 
         if state_traj is not None:
-            state_traj_btxd = np.reshape(state_traj_bxtxd, (n_batch * n_time, n_states))
+            state_traj_btxd = np.reshape(state_traj_txbxd, (n_time * n_batch, n_states))
             pca.fit(state_traj_btxd)
         else:
             pca.fit(fps.xstar)
 
         ax = fig.add_subplot(111, projection="3d")
         ax.set_title(title)
-        ax.set_xlabel("PC 1", fontweight=FONT_WEIGHT)
-        ax.set_zlabel("PC 3", fontweight=FONT_WEIGHT)
-        ax.set_ylabel("PC 2", fontweight=FONT_WEIGHT)
+        ax.set_xlabel(f"PC {pca_index[0]}", fontweight=FONT_WEIGHT)
+        ax.set_ylabel(f"PC {pca_index[1]}", fontweight=FONT_WEIGHT)
+        ax.set_zlabel("cos theta", fontweight=FONT_WEIGHT)
 
-        # For generating figure in paper.md
-        ax.set_xticks([-2, -1, 0, 1, 2])
-        ax.set_yticks([-1, 0, 1])
-        ax.set_zticks([-1, 0, 1])
     else:
         # For 1D or 0D networks (i.e., never)
         pca = None
@@ -132,12 +138,16 @@ def plot_fps(
             plot_batch_idx = list(range(n_batch))
 
         for batch_idx in plot_batch_idx:
-            x_idx = state_traj_bxtxd[batch_idx]
+            x_idx = state_traj_txbxd[:, batch_idx, :]
 
             if n_states >= 3:
                 z_idx = pca.transform(x_idx[plot_time_idx, :])
             else:
                 z_idx = x_idx[plot_time_idx, :]
+
+            cos_theta = np.expand_dims(output[:, batch_idx, 2], 1)
+            z_idx = np.concat([z_idx, cos_theta], axis=1)
+            z_idx = np.concat([z_idx[:, pca_index[0]], z_idx[:, pca_index[1]], z_idx[:, -1]])
             plot_123d(ax, z_idx, color="b", linewidth=0.2)
 
     for init_idx in range(n_inits):

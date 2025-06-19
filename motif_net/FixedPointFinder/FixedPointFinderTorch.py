@@ -13,6 +13,8 @@ Journal of Open Source Software, 3(31), 1003.
 https://doi.org/10.21105/joss.01003
 
 Please direct correspondence to mgolub@cs.washington.edu
+
+Note that I have changed some of these functions to follow [time, batch, states] format
 """
 
 import numpy as np
@@ -21,8 +23,12 @@ import time
 import torch
 from torch.autograd.functional import jacobian
 
+import logging
+
 from .FixedPointFinderBase import FixedPointFinderBase
 from .FixedPoints import FixedPoints
+
+logger = logging.getLogger(__name__)
 
 
 class FixedPointFinderTorch(FixedPointFinderBase):
@@ -83,7 +89,9 @@ class FixedPointFinderTorch(FixedPointFinderBase):
         TIME_DIM = self._time_dim
 
         # Ensure that fixed point optimization does not alter RNN parameters.
-        print("\tFreezing model parameters so model is not affected by fixed point optimization.")
+        logger.info(
+            "\tFreezing model parameters so model is not affected by fixed point optimization."
+        )
         for p in self.rnn.parameters():
             p.requires_grad = False
 

@@ -12,13 +12,19 @@ Journal of Open Source Software, 3(31), 1003.
 https://doi.org/10.21105/joss.01003
 
 Please direct correspondence to mgolub@cs.washington.edu
+
+Note that I have changed some of these functions to follow [time, batch, states] format
 """
 
 import numpy as np
 import time
 from copy import deepcopy
 
+import logging
+
 from . import FixedPoints
+
+logger = logging.getLogger(__name__)
 
 
 class FixedPointFinderBase:
@@ -203,7 +209,7 @@ class FixedPointFinderBase:
     # *************************************************************************
 
     def sample_inputs_and_states(
-        self, inputs, state_traj_txbxd, n_inits, valid_txb=None, noise_scale=0.0
+        self, inputs, state_traj_txbxd, outputs, n_inits, valid_txb=None, noise_scale=0.0
     ):
         """Draws random paired samples from the RNN's inputs and hidden-state
         trajectories. Sampled states (but not inputs) can optionally be
@@ -241,6 +247,7 @@ class FixedPointFinderBase:
         """
         [n_time, n_batch, n_states] = state_traj_txbxd.shape
         n_inputs = inputs.shape[2]
+        n_outputs = outputs.shape[2]
 
         valid_txb = self._get_valid_mask(n_time, n_batch, valid_txb=valid_txb)
         time_indices, trial_indices = self._sample_trial_and_time_indices(valid_txb, n_inits)
@@ -248,11 +255,13 @@ class FixedPointFinderBase:
         # Draw random samples from inputs and state trajectories
         input_samples = np.zeros([n_inits, n_inputs])
         state_samples = np.zeros([n_inits, n_states])
+        output_samples = np.zeros([n_inits, n_outputs])
         for init_idx in range(n_inits):
             trial_idx = trial_indices[init_idx]
             time_idx = time_indices[init_idx]
             input_samples[init_idx, :] = inputs[time_idx, trial_idx, :]
             state_samples[init_idx, :] = state_traj_txbxd[time_idx, trial_idx, :]
+            output_samples[init_idx, :] = outputs[time_idx, trial_idx, :]
 
         # Add IID Gaussian noise to the sampled states
         state_samples = self._add_gaussian_noise(state_samples, noise_scale)
@@ -265,7 +274,7 @@ class FixedPointFinderBase:
             np.isnan(input_samples)
         ), "Detected NaNs in sampled inputs. Check inputs and valid_txb."
 
-        return input_samples, state_samples
+        return input_samples, state_samples, output_samples
 
     def sample_states(self, state_traj_txbxd, n_inits, valid_txb=None, noise_scale=0.0):
         """Draws random samples from trajectories of the RNN state. Samples
@@ -731,14 +740,14 @@ class FixedPointFinderBase:
 
         init_non_outlier_idx = np.where(scaled_init_dists < dist_thresh)[0]
         n_init_non_outliers = init_non_outlier_idx.size
-        print(
+        logger.info(
             "\t\tinitial_states: %d outliers detected (of %d)."
             % (n_inits - n_init_non_outliers, n_inits)
         )
 
         fps_non_outlier_idx = np.where(scaled_fps_dists < dist_thresh)[0]
         n_fps_non_outliers = fps_non_outlier_idx.size
-        print(
+        logger.info(
             "\t\tfixed points: %d outliers detected (of %d)." % (n_fps - n_fps_non_outliers, n_fps)
         )
 
@@ -860,7 +869,7 @@ class FixedPointFinderBase:
 
     def _print_if_verbose(self, *args, **kwargs):
         if self.verbose:
-            print(*args, **kwargs)
+            logger.info(*args, **kwargs)
 
     @classmethod
     def _print_iter_update(cls, iter_count, t_start, q, dq, lr, is_final=False):
@@ -871,13 +880,13 @@ class FixedPointFinderBase:
 
         if is_final:
             delimiter = "\n\t\t"
-            print("\t\t%d iters%s" % (iter_count, delimiter), end="")
+            logger.info("\t\t%d iters%s" % (iter_count, delimiter), end="")
         else:
             delimiter = ", "
-            print("\tIter: %d%s" % (iter_count, delimiter), end="")
+            logger.info("\tIter: %d%s" % (iter_count, delimiter), end="")
 
         if q.size == 1:
-            print("q = %.2e%sdq = %.2e%s" % (q, delimiter, dq, delimiter), end="")
+            logger.info("q = %.2e%sdq = %.2e%s" % (q, delimiter, dq, delimiter), end="")
         else:
             mean_q = np.mean(q)
             std_q = np.std(q)
@@ -885,17 +894,17 @@ class FixedPointFinderBase:
             mean_dq = np.mean(dq)
             std_dq = np.std(dq)
 
-            print(
+            logger.info(
                 "q = %.2e +/- %.2e%s"
                 "dq = %.2e +/- %.2e%s" % (mean_q, std_q, delimiter, mean_dq, std_dq, delimiter),
                 end="",
             )
 
-        print("learning rate = %.2e%s" % (lr, delimiter), end="")
+        logger.info("learning rate = %.2e%s" % (lr, delimiter), end="")
 
-        print("avg iter time = %.2e sec" % avg_iter_time, end="")
+        logger.info("avg iter time = %.2e sec" % avg_iter_time, end="")
 
         if is_final:
-            print("")  # Just for the endline
+            logger.info("")  # Just for the endline
         else:
-            print(".")
+            logger.info(".")
