@@ -11,12 +11,12 @@ class DelayedPro(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("DelayedPro", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch(angle=self.angle)
+        theta = self.generate_stimulus_batch(circle=self.circle)
         modality = self.generate_modality()
         stim_kwargs = {"theta": theta, "modality": modality}
 
@@ -39,11 +39,11 @@ class DelayedAnti(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("DelayedAnti", self.batch_size, self.dt, self.gamma)
-        theta = self.generate_stimulus_batch(angle=self.angle)
+        theta = self.generate_stimulus_batch(circle=self.circle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -67,12 +67,12 @@ class MemoryPro(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("MemoryPro", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch(angle=self.angle)
+        theta = self.generate_stimulus_batch(circle=self.circle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -96,12 +96,12 @@ class MemoryAnti(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("MemoryAnti", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch(angle=self.angle)
+        theta = self.generate_stimulus_batch(circle=self.circle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -126,12 +126,12 @@ class ReactPro(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("ReactPro", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch(angle=self.angle)
+        theta = self.generate_stimulus_batch(circle=self.circle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -155,12 +155,12 @@ class ReactAnti(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("ReactAnti", self.batch_size, self.dt, self.gamma)
 
-        theta = self.generate_stimulus_batch(angle=self.angle)
+        theta = self.generate_stimulus_batch(circle=self.circle)
         modality = self.generate_modality()
         stimulus_kwargs = {"theta": theta, "modality": modality}
 
@@ -185,7 +185,7 @@ class IntegrationModality1(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("IntegrationModality1", self.batch_size, self.dt, self.gamma)
@@ -195,13 +195,14 @@ class IntegrationModality1(Task):
         amp_cohesion_vars = torch.Tensor([0.08, 0.16, 0.32])
         amp_cohesion_sign = torch.Tensor([-1, 1])
         amp_var = (
-            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size,))]
-            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size))]
+            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size, 1))]
+            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size, 1))]
         )
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
-        theta_1 = self.generate_stimulus_batch(angle=self.angle)
-        theta_2 = self.generate_stimulus_batch(angle=self.angle)
+
+        theta_1 = self.generate_stimulus_batch(circle=self.circle)
+        theta_2 = self.generate_stimulus_batch(circle=self.circle)
         modality = torch.ones((self.batch_size,), dtype=int)
 
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1}
@@ -227,9 +228,12 @@ class IntegrationModality1(Task):
         """Move to stimulus with largest amplitude. Only modality 1 presented"""
         amp = torch.cat((amp_1, amp_2), dim=1)
         amp_idx = torch.argmax(amp, dim=1)
+
         theta = torch.cat((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
+
         response_start = self.n_steps - self.task_periods[-1].n_steps
+
         self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start, :] = theta.squeeze(1)
 
@@ -239,7 +243,7 @@ class IntegrationModality2(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("IntegrationModality2", self.batch_size, self.dt, self.gamma)
@@ -249,14 +253,14 @@ class IntegrationModality2(Task):
         amp_cohesion_vars = torch.Tensor([0.08, 0.16, 0.32])
         amp_cohesion_sign = torch.Tensor([-1, 1])
         amp_var = (
-            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size,))]
-            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size))]
+            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size, 1))]
+            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size, 1))]
         )
-
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
-        theta_1 = self.generate_stimulus_batch(angle=self.angle)
-        theta_2 = self.generate_stimulus_batch(angle=self.angle)
+
+        theta_1 = self.generate_stimulus_batch(circle=self.circle)
+        theta_2 = self.generate_stimulus_batch(circle=self.circle)
         modality = torch.ones((self.batch_size,), dtype=int) * 2
 
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1}
@@ -282,9 +286,12 @@ class IntegrationModality2(Task):
         """Move to stimulus location with largest amplitude. Only present modality 2."""
         amp = torch.cat((amp_1, amp_2), dim=1)
         amp_idx = torch.argmax(amp, dim=1)
+
         theta = torch.cat((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx.unsqueeze(1))
+
         response_start = self.n_steps - self.task_periods[-1].n_steps
+
         self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
@@ -294,26 +301,27 @@ class ContextIntModality1(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("ContextIntModality1", self.batch_size, self.dt, self.gamma)
 
         # Using values from code
-        amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
+        amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
         amp_cohesion_vars = torch.Tensor([0.08, 0.16, 0.32])
         amp_cohesion_sign = torch.Tensor([-1, 1])
         amp_var = (
-            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size,))]
-            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size))]
+            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size, 2))]
+            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size, 2))]
         )
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
 
         # Generate both modalities at once
-        theta_1 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
-        theta_2 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
+        theta_1 = self.generate_stimulus_batch(n_mod=2, circle=self.circle)
+        theta_2 = self.generate_stimulus_batch(n_mod=2, circle=self.circle)
         modality = torch.ones((self.batch_size,), dtype=int)
+
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1, "n_mod": 2}
         stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2, "n_mod": 2}
 
@@ -359,26 +367,27 @@ class ContextIntModality2(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("ContextIntModality2", self.batch_size, self.dt, self.gamma)
 
         # Using values from code
-        amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
+        amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
         amp_cohesion_vars = torch.Tensor([0.08, 0.16, 0.32])
         amp_cohesion_sign = torch.Tensor([-1, 1])
         amp_var = (
-            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size,))]
-            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size))]
+            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size, 2))]
+            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size, 2))]
         )
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
 
         # Generate both modalities at once
-        theta_1 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
-        theta_2 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
+        theta_1 = self.generate_stimulus_batch(n_mod=2, circle=self.circle)
+        theta_2 = self.generate_stimulus_batch(n_mod=2, circle=self.circle)
         modality = torch.ones((self.batch_size,), dtype=int)
+
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1, "n_mod": 2}
         stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2, "n_mod": 2}
 
@@ -403,14 +412,18 @@ class ContextIntModality2(Task):
         Both amplitudes presented, only attend to modality 2."""
         amp_1 = amp_1[:, 1]
         amp_2 = amp_2[:, 1]
+
         theta_1 = theta_1[:, 1]
         theta_2 = theta_2[:, 1]
 
         amp = torch.stack((amp_1, amp_2), dim=1)
         amp_idx = torch.argmax(amp, dim=1).unsqueeze(1)
+
         theta = torch.stack((theta_1, theta_2), dim=1)
         theta = torch.gather(theta, 1, amp_idx)
+
         response_start = self.n_steps - self.task_periods[-1].n_steps
+
         self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
@@ -420,25 +433,25 @@ class IntegrationMultiModal(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("IntegrationMultiModal", self.batch_size, self.dt, self.gamma)
 
         # Using values from paper code
-        amp_mean = 0.4 * torch.rand((self.batch_size, 1)) + 0.8
+        amp_mean = 0.4 * torch.rand((self.batch_size, 2)) + 0.8
         amp_cohesion_vars = torch.Tensor([0.08, 0.16, 0.32])
         amp_cohesion_sign = torch.Tensor([-1, 1])
         amp_var = (
-            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size,))]
-            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size))]
+            amp_cohesion_vars[torch.randint(0, 3, (self.batch_size, 2))]
+            * amp_cohesion_sign[torch.randint(0, 2, (self.batch_size, 2))]
         )
         amp_1 = amp_mean + amp_var
         amp_2 = amp_mean - amp_var
 
         # Generate both modalities at once
-        theta_1 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
-        theta_2 = self.generate_stimulus_batch(n_mod=2, angle=self.angle)
+        theta_1 = self.generate_stimulus_batch(n_mod=2, circle=self.circle)
+        theta_2 = self.generate_stimulus_batch(n_mod=2, circle=self.circle)
         modality = torch.ones((self.batch_size,), dtype=int)
 
         stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1, "n_mod": 2}
@@ -466,6 +479,7 @@ class IntegrationMultiModal(Task):
         """Attend to stimulus value with largest amplitude. Integrate both modalities."""
         amp_1 = amp_1.sum(dim=1)
         amp_2 = amp_2.sum(dim=1)
+
         theta_1 = theta_1.sum(dim=1)
         theta_2 = theta_2.sum(dim=1)
 
@@ -479,6 +493,7 @@ class IntegrationMultiModal(Task):
 
         # Set response period input/output
         response_start = self.n_steps - self.task_periods[-1].n_steps
+
         self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
         self.theta[response_start:] = theta.squeeze(1)
 
@@ -488,7 +503,7 @@ class ReactMatch2Sample(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("ReactMatch2Sample", self.batch_size, self.dt, self.gamma)
@@ -499,8 +514,8 @@ class ReactMatch2Sample(Task):
         offset = (2 * torch.pi - torch.pi / 10) * torch.rand((self.batch_size, 1)) + torch.pi / 10
         theta_2 = theta_1 + offset * torch.randint(0, 2, (self.batch_size, 1))
 
-        mod_1 = self.generate_modality(angle=self.angle)
-        mod_2 = self.generate_modality(angle=self.angle)
+        mod_1 = self.generate_modality(circle=self.circle)
+        mod_2 = self.generate_modality(circle=self.circle)
 
         stimulus1_kwargs = {"theta": theta_1, "modality": mod_1}
         stimulus2_kwargs = {"theta": theta_2, "modality": mod_2}
@@ -517,7 +532,9 @@ class ReactMatch2Sample(Task):
         """Categories match if both stimuli are same value. move to stimulus 2."""
         theta = torch.cat((torch.sin(theta_2), torch.cos(theta_2)), dim=1)
         theta[(theta_1 == theta_2).squeeze(1)] = -1
+
         response_start = self.n_steps - self.task_periods[-1].n_steps
+
         self.y[response_start:, :, 1:] = theta
         self.theta[response_start:] = theta_2.squeeze(1)
 
@@ -556,7 +573,9 @@ class ReactNonMatch2Sample(Task):
         # If matched, attend to theta_2
         theta = torch.cat((torch.sin(theta_2), torch.cos(theta_2)), dim=1)
         theta[(theta_2 == theta_1 + torch.pi).squeeze(1)] = -1
+
         response_start = self.n_steps - self.task_periods[-1].n_steps
+
         self.y[response_start:, :, 1:] = theta
         self.theta[response_start:] = theta_2.squeeze(1)
 
@@ -566,13 +585,13 @@ class ReactCategoryPro(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("ReactCategoryPro", self.batch_size, self.dt, self.gamma)
 
-        theta_1 = self.generate_stimulus_batch(angle=self.angle)
-        theta_2 = self.generate_stimulus_batch(angle=self.angle)
+        theta_1 = self.generate_stimulus_batch(circle=self.circle)
+        theta_2 = self.generate_stimulus_batch(circle=self.circle)
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()
 
@@ -594,7 +613,9 @@ class ReactCategoryPro(Task):
 
         theta = torch.stack((torch.sin(theta_2), torch.cos(theta_2)), dim=2)
         theta[torch.logical_or(cat_1, cat_2).squeeze(1)] = -1
+
         response_start = self.n_steps - self.task_periods[-1].n_steps
+
         self.y[response_start:, :, 1:] = theta.squeeze(1)
         self.theta[response_start:] = theta_2.squeeze(1)
 
@@ -604,13 +625,13 @@ class ReactCategoryAnti(Task):
     batch_size: int = 1
     dt: int = 20
     gamma: float | None = None
-    angle: float | None = None
+    circle: bool = False
 
     def __post_init__(self) -> None:
         super().__init__("ReactCategoryAnti", self.batch_size, self.dt, self.gamma)
 
-        theta_1 = self.generate_stimulus_batch(angle=self.angle)
-        theta_2 = self.generate_stimulus_batch(angle=self.angle)
+        theta_1 = self.generate_stimulus_batch(circle=self.circle)
+        theta_2 = self.generate_stimulus_batch(circle=self.circle)
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()
 
@@ -632,7 +653,9 @@ class ReactCategoryAnti(Task):
 
         theta = torch.cat((torch.sin(theta_2), torch.cos(theta_2)), dim=1)
         theta[torch.logical_or(cat_1, cat_2).squeeze(1)] = -1
+
         response_start = self.n_steps - self.task_periods[-1].n_steps
+
         self.y[response_start:, :, 1:] = theta.squeeze(1)
         self.theta[response_start:] = theta_2.squeeze(1)
 

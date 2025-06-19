@@ -177,16 +177,16 @@ class Task:
             name_str += f"{task_period}\n"
         return name_str
 
-    def generate_stimulus_batch(self, n_mod: int = 1, angle: float | None = None) -> torch.Tensor:
+    def generate_stimulus_batch(self, n_mod: int = 1, circle: bool = False) -> torch.Tensor:
         """Create a batch of angles in radians as an input for a task period.
 
         Parameters
         ----------
         n_mod
             The number of modalities to generate thetas for.
-        angle
-            The angle (in radians) to set the thetas at. If no argument is provided, it each
-            theta will be randomly drawn from a uniform distribution. Default is None.
+        circle
+            Boolean to say whether to randomly generate theta values or set them to be evenly
+            spaced points around a circle. The default value is ``False``.
 
         Returns
         -------
@@ -194,10 +194,11 @@ class Task:
             A batch of angles to add to an ``input_array`` for a task period. Takes shape
             (batch_size, n_mod)
         """
-        if angle is None:
-            theta = torch.rand((self.batch_size, n_mod)) * 2 * torch.pi
+        if circle:
+            points = torch.linspace(0, 2*torch.pi, self.batch_size+1)[:-1].unsqueeze(1)
+            theta = theta = torch.ones((self.batch_size, n_mod)) * points
         else:
-            theta = torch.remainder(torch.ones((self.batch_size, n_mod)) * angle, 2 * torch.pi)
+            theta = torch.rand((self.batch_size, n_mod)) * 2 * torch.pi
         return theta
 
     def generate_modality(self) -> torch.Tensor:
