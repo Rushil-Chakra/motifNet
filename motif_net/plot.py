@@ -8,7 +8,7 @@ import torch
 from matplotlib.cm import Pastel2
 from matplotlib.patches import Rectangle
 
-from motif_net import Task
+from .tasks import Task
 
 
 def _get_positive_theta(sin: npt.NDArray, cos: npt.NDArray) -> npt.NDArray:
@@ -41,7 +41,7 @@ def _get_positive_theta(sin: npt.NDArray, cos: npt.NDArray) -> npt.NDArray:
 
 
 def _build_output_df(time_spans: dict) -> Callable[[npt.NDArray, str, int], pd.DataFrame]:
-    """Closure to build a dataframe where ``time_spans`` is not paramteerized.
+    """Closure to build a dataframe where ``time_spans`` is not parameterized.
 
     Parameters
     time_spans
@@ -265,5 +265,34 @@ def plot_task(
         )
         fig.add_artist(text)
 
-    # axd = {key: ax for key, ax in zip(axd.keys(), axes.flatten())}
     return fig, axd
+
+
+def plot_performance(loss: torch.Tensor, iteration: int) -> tuple[plt.Figure, plt.Axes]:
+    """Plots the running loss of the model over time.
+
+    Parameters
+    ----------
+    loss
+        A 1D tensor object with the model's loss
+    iteration
+        The current iteration step the model is in. Used for the title.
+
+    Returns
+    -------
+    fig
+        The ``matplotlib`` figure object
+    ax
+        The ``matplotlib`` axis object
+    """
+    loss = loss.cpu().numpy()
+
+    fig, ax = plt.subplots(1, 1)
+    fig.tight_layout()
+
+    time_step = 5000
+    ticks = np.arange(0, iteration, time_step)
+    ax.semilogy(ticks, loss)
+    ax.set_xticks(ticks)
+    ax.set_title(f"Iteration {iteration:,} - Current loss: {loss[-1]}")
+    return fig, ax
