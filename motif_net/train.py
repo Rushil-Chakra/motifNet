@@ -4,7 +4,7 @@ import torch
 from torch import optim
 import matplotlib.pyplot as plt
 
-from .plot import plot_task
+from .plot import plot_task, plot_performance
 from .tasks import TaskLoader
 from .utils import correct_task, criterion
 
@@ -18,7 +18,7 @@ def train(
     lr: float,
     l2_terms: tuple[float, float],
     batch_size: int,
-    max_iter: int = 50000000,
+    max_iter: int = 1000000,
     clip_grad: bool = True,
     max_norm: int = 10,
 ):
@@ -56,6 +56,7 @@ def train(
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=l2_w_term)
 
     prev_loss = -1
+    loss_arr = torch.zeros(max_iter)
     for i in range(max_iter):
         h_0 = model.init_hidden(batch_size)
         optimizer.zero_grad()
@@ -69,17 +70,23 @@ def train(
         activation_loss = l2_a_term * torch.square(torch.linalg.vector_norm(h_t, ord=2))
         loss = criterion(y, y_hat, mask) + activation_loss
         loss.backward()
-        # 10000
+
         if i % 5000 == 0:
             accuracy_i = correct_task(theta, y_hat)
             loss_i = loss.item()
+            loss_arr[i // 5000] = loss_i
             update_str = f"Progress: {i:,} Iterations\tLoss: {loss_i}\t Accuracy: {accuracy_i}"
             logger.info(update_str)
 
             torch.save(model, f"{output_path}/model.pt")
-            test_plot, _ = plot_task(task, y_hat, i)
-            test_plot.savefig(f"{output_path}/plot.png")
-            plt.close(test_plot)
+
+            task_plot, _ = plot_task(task, y_hat, i)
+            task_plot.savefig(f"{output_path}/task_example.png")
+            plt.close(task_plot)
+
+            loss_plot, _ = plot_performance(loss_arr[: i // 5000], i)
+            loss_plot.savefig(f"{output_path}/loss_plot.png")
+            plt.close(loss_plot)
 
         if clip_grad:
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
