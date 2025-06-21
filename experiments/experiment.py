@@ -49,7 +49,7 @@ def main(cfg: OmegaConf) -> None:
             task = TASK_DICT[task_name](batch_size=task_kwargs["batch_size"], circle=True)
 
             input_state_periods, hidden_state_periods, output_state_periods, task_periods = (
-                get_task_periods(model, task, task_name, batch_size)
+                get_task_periods(model, task, batch_size)
             )
             fig, unique_fixed_points = find_fixed_points(
                 model,
