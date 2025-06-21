@@ -291,7 +291,7 @@ def plot_performance(loss: torch.Tensor, iteration: int) -> tuple[plt.Figure, pl
     fig.tight_layout()
 
     time_step = 5000
-    ticks = np.arange(0, iteration, time_step)
+    ticks = np.arange(0, iteration + 1, time_step)
     ax.semilogy(ticks, loss)
     ax.set_xticks(ticks)
     ax.set_title(f"Iteration {iteration:,} - Current loss: {loss[-1]}")

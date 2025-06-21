@@ -84,9 +84,10 @@ def train(
             task_plot.savefig(f"{output_path}/task_example.png")
             plt.close(task_plot)
 
-            loss_plot, _ = plot_performance(loss_arr[: i // 5000], i)
-            loss_plot.savefig(f"{output_path}/loss_plot.png")
-            plt.close(loss_plot)
+            if i != 0:
+                loss_plot, _ = plot_performance(loss_arr[: 1 + i // 5000], i)
+                loss_plot.savefig(f"{output_path}/loss_plot.png")
+                plt.close(loss_plot)
 
         if clip_grad:
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
