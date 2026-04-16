@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from .plot import plot_task, plot_performance
 from .tasks import TaskLoader
-from .utils import correct_task, criterion
+from .utils import correct_task, h_0_criterion
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def train(
 
         y_hat, h_t = model(x, h_0)
         activation_loss = l2_a_term * torch.square(torch.linalg.vector_norm(h_t, ord=2))
-        loss = criterion(y, y_hat, mask) + activation_loss
+        loss = h_0_criterion(y, y_hat, mask, h_t) + activation_loss
         loss.backward()
 
         if i % 5000 == 0:
