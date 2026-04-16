@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 def main(cfg: OmegaConf) -> None:
     try:
         logger.info("\n" + OmegaConf.to_yaml(cfg))
-        logger.info(f"Using device {torch.cuda.get_device_name()}")
+        if torch.cuda.is_available():
+            logger.info(f"Using device {torch.cuda.get_device_name()}")
         logger.info("Initializing TaskLoader")
         task_list = cfg["experiments"]["task_list"]
         task_kwargs = cfg["task_loader"]
