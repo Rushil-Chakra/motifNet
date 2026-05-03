@@ -30,7 +30,9 @@ class DelayedPro(Task):
     def set_y(self, theta: torch.Tensor) -> None:
         """Move to same angle as presented."""
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -58,7 +60,9 @@ class DelayedAnti(Task):
         """Move in opposite direction of angle presented."""
         theta += torch.pi
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -87,7 +91,9 @@ class MemoryPro(Task):
     def set_y(self, theta: torch.Tensor) -> None:
         """Move in same angle as presented after stimulus has faded."""
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -117,7 +123,9 @@ class MemoryAnti(Task):
         """Move in opposite direction of stimulus after it has faded."""
         theta += torch.pi
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -146,7 +154,9 @@ class ReactPro(Task):
         """Move in direction of stimulus immediately. There is no change in fixation during
         the whole trial."""
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -176,7 +186,9 @@ class ReactAnti(Task):
         the whole trial."""
         theta += torch.pi
         response_start = self.n_steps - self.task_periods[-1].n_steps
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -234,7 +246,9 @@ class IntegrationModality1(Task):
 
         response_start = self.n_steps - self.task_periods[-1].n_steps
 
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start, :] = theta.squeeze(1)
 
 
@@ -292,7 +306,9 @@ class IntegrationModality2(Task):
 
         response_start = self.n_steps - self.task_periods[-1].n_steps
 
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -322,8 +338,18 @@ class ContextIntModality1(Task):
         theta_2 = self.generate_stimulus_batch(n_mod=2, circle=self.circle)
         modality = torch.ones((self.batch_size,), dtype=int)
 
-        stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1, "n_mod": 2}
-        stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2, "n_mod": 2}
+        stimulus1_kwargs = {
+            "theta": theta_1,
+            "modality": modality,
+            "amplitude": amp_1,
+            "n_mod": 2,
+        }
+        stimulus2_kwargs = {
+            "theta": theta_2,
+            "modality": modality,
+            "amplitude": amp_2,
+            "n_mod": 2,
+        }
 
         context = self.generate_task_period("context", 200, 600)
         stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
@@ -358,7 +384,9 @@ class ContextIntModality1(Task):
 
         response_start = self.n_steps - self.task_periods[-1].n_steps
 
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -388,8 +416,18 @@ class ContextIntModality2(Task):
         theta_2 = self.generate_stimulus_batch(n_mod=2, circle=self.circle)
         modality = torch.ones((self.batch_size,), dtype=int)
 
-        stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1, "n_mod": 2}
-        stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2, "n_mod": 2}
+        stimulus1_kwargs = {
+            "theta": theta_1,
+            "modality": modality,
+            "amplitude": amp_1,
+            "n_mod": 2,
+        }
+        stimulus2_kwargs = {
+            "theta": theta_2,
+            "modality": modality,
+            "amplitude": amp_2,
+            "n_mod": 2,
+        }
 
         context = self.generate_task_period("context", 200, 600)
         stim_1 = self.generate_task_period("stimulus1", 200, 1600, stimulus1_kwargs)
@@ -424,7 +462,9 @@ class ContextIntModality2(Task):
 
         response_start = self.n_steps - self.task_periods[-1].n_steps
 
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -454,8 +494,18 @@ class IntegrationMultiModal(Task):
         theta_2 = self.generate_stimulus_batch(n_mod=2, circle=self.circle)
         modality = torch.ones((self.batch_size,), dtype=int)
 
-        stimulus1_kwargs = {"theta": theta_1, "modality": modality, "amplitude": amp_1, "n_mod": 2}
-        stimulus2_kwargs = {"theta": theta_2, "modality": modality, "amplitude": amp_2, "n_mod": 2}
+        stimulus1_kwargs = {
+            "theta": theta_1,
+            "modality": modality,
+            "amplitude": amp_1,
+            "n_mod": 2,
+        }
+        stimulus2_kwargs = {
+            "theta": theta_2,
+            "modality": modality,
+            "amplitude": amp_2,
+            "n_mod": 2,
+        }
 
         # Define task periods
         context = self.generate_task_period("context", 200, 600)
@@ -494,7 +544,9 @@ class IntegrationMultiModal(Task):
         # Set response period input/output
         response_start = self.n_steps - self.task_periods[-1].n_steps
 
-        self.y[response_start:, :, 1:] = torch.cat((torch.sin(theta), torch.cos(theta)), dim=1)
+        self.y[response_start:, :, 1:] = torch.cat(
+            (torch.sin(theta), torch.cos(theta)), dim=1
+        )
         self.theta[response_start:] = theta.squeeze(1)
 
 
@@ -511,7 +563,9 @@ class ReactMatch2Sample(Task):
         theta_1 = self.generate_stimulus_batch()
         # add minimum [pi/10, 2*pi - pi/10] to avoid falling within acceptable bound
         # Some of these will be set to be the same as the first stimulus randomly
-        offset = (2 * torch.pi - torch.pi / 10) * torch.rand((self.batch_size, 1)) + torch.pi / 10
+        offset = (2 * torch.pi - torch.pi / 10) * torch.rand(
+            (self.batch_size, 1)
+        ) + torch.pi / 10
         theta_2 = theta_1 + offset * torch.randint(0, 2, (self.batch_size, 1))
 
         mod_1 = self.generate_modality(circle=self.circle)
@@ -551,8 +605,12 @@ class ReactNonMatch2Sample(Task):
         theta_1 = self.generate_stimulus_batch()
         # add minimum [pi/10, 2*pi - pi/10] to avoid falling within acceptable bound
         # Some of these will be set to be the same as the first stimulus randomly
-        offset = (2 * torch.pi - torch.pi / 10) * torch.rand((self.batch_size, 1)) + torch.pi / 10
-        theta_2 = theta_1 + torch.pi + offset * torch.randint(0, 2, (self.batch_size, 1))
+        offset = (2 * torch.pi - torch.pi / 10) * torch.rand(
+            (self.batch_size, 1)
+        ) + torch.pi / 10
+        theta_2 = (
+            theta_1 + torch.pi + offset * torch.randint(0, 2, (self.batch_size, 1))
+        )
 
         mod_1 = self.generate_modality()
         mod_2 = self.generate_modality()

@@ -48,7 +48,9 @@ def correct_task(theta: torch.Tensor, y_hat: torch.Tensor) -> torch.Tensor:
 
     dist = theta - theta_hat
     dist = torch.minimum(torch.abs(dist), 2 * torch.pi - torch.abs(dist))
-    distance_check = torch.logical_and(torch.logical_not(fixate), torch.logical_not(fixate_hat))
+    distance_check = torch.logical_and(
+        torch.logical_not(fixate), torch.logical_not(fixate_hat)
+    )
     distance_check = torch.logical_and(distance_check, dist < torch.pi / 10)
     fixation_check = torch.logical_and(fixate, fixate_hat)
 

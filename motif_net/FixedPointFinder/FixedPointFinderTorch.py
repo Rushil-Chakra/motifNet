@@ -32,8 +32,9 @@ logger = logging.getLogger(__name__)
 
 
 class FixedPointFinderTorch(FixedPointFinderBase):
-
-    def __init__(self, rnn, lr_init=1.0, lr_patience=5, lr_factor=0.95, lr_cooldown=0, **kwargs):
+    def __init__(
+        self, rnn, lr_init=1.0, lr_patience=5, lr_factor=0.95, lr_cooldown=0, **kwargs
+    ):
         """Creates a FixedPointFinder object.
 
         Args:
@@ -131,7 +132,6 @@ class FixedPointFinderTorch(FixedPointFinderBase):
         q_prev_b = torch.full((n_batch,), float("nan"), device=self.device)
 
         while True:
-
             F_x_1xbxd, F_x_bx1xd = self.rnn(inputs_1xbxd, x_bx1xd)
 
             dx_bxd = torch.squeeze(x_bx1xd.unsqueeze(0) - F_x_bx1xd)
@@ -151,21 +151,30 @@ class FixedPointFinderTorch(FixedPointFinderBase):
             ev_q_b = q_b.detach().cpu().numpy()
             ev_dq_b = dq_b.detach().cpu().numpy()
 
-            if self.super_verbose and np.mod(iter_count, self.n_iters_per_print_update) == 0:
-                self._print_iter_update(iter_count, t_start, ev_q_b, ev_dq_b, iter_learning_rate)
+            if (
+                self.super_verbose
+                and np.mod(iter_count, self.n_iters_per_print_update) == 0
+            ):
+                self._print_iter_update(
+                    iter_count, t_start, ev_q_b, ev_dq_b, iter_learning_rate
+                )
 
             if iter_count > 1 and np.all(
-                np.logical_or(ev_dq_b < self.tol_dq * iter_learning_rate, ev_q_b < self.tol_q)
+                np.logical_or(
+                    ev_dq_b < self.tol_dq * iter_learning_rate, ev_q_b < self.tol_q
+                )
             ):
                 """Here dq is scaled by the learning rate. Otherwise very
                 small steps due to very small learning rates would spuriously
                 indicate convergence. This scaling is roughly equivalent to
                 measuring the gradient norm."""
-                self._print_if_verbose("\tOptimization complete " "to desired tolerance.")
+                self._print_if_verbose("\tOptimization complete to desired tolerance.")
                 break
 
             if iter_count + 1 > self.max_iters:
-                self._print_if_verbose("\tMaximum iteration count reached. " "Terminating.")
+                self._print_if_verbose(
+                    "\tMaximum iteration count reached. Terminating."
+                )
                 break
 
             q_prev_b = q_b
@@ -283,7 +292,9 @@ class FixedPointFinderTorch(FixedPointFinderBase):
             iii) Total time: 5.57ms.
             """
 
-            inputs_1xbxd = inputs_bxd.unsqueeze(TIME_DIM)  # Used locally--ugly but necessary.
+            inputs_1xbxd = inputs_bxd.unsqueeze(
+                TIME_DIM
+            )  # Used locally--ugly but necessary.
 
             def forward_fn(x_bxd):
                 """Computes x(t+1) as a function of x(t) under fixed inputs.
@@ -326,7 +337,9 @@ class FixedPointFinderTorch(FixedPointFinderBase):
             # which are always 0.
             # To confirm this, see that J_bxbxdxd[i, j, :, :]==0 for all i != j.
 
-            inputs_1xbxd = inputs_bxd.unsqueeze(TIME_DIM)  # Used locally--ugly but necessary.
+            inputs_1xbxd = inputs_bxd.unsqueeze(
+                TIME_DIM
+            )  # Used locally--ugly but necessary.
 
             def forward_fn(x_bxd):
                 # Unsqueeze to promote appropriate broadcasting

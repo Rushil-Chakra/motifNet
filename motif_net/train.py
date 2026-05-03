@@ -75,7 +75,9 @@ def train(
             accuracy_i = correct_task(theta, y_hat)
             loss_i = loss.item()
             loss_arr[i // 5000] = loss_i
-            update_str = f"Progress: {i:,} Iterations\tLoss: {loss_i}\t Accuracy: {accuracy_i}"
+            update_str = (
+                f"Progress: {i:,} Iterations\tLoss: {loss_i}\t Accuracy: {accuracy_i}"
+            )
             logger.info(update_str)
 
             torch.save(model, f"{output_path}/model.pt")

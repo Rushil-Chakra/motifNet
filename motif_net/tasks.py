@@ -23,7 +23,9 @@ TASK_VECTOR_DEFINITION = [
     "ReactCategoryAnti",
 ]
 
-period_name_type = Literal["context", "stimulus1", "stimulus2", "memory1", "memory2", "response"]
+period_name_type = Literal[
+    "context", "stimulus1", "stimulus2", "memory1", "memory2", "response"
+]
 
 
 @dataclass(repr=False)
@@ -61,7 +63,9 @@ class TaskPeriod:
             raise ValueError("Task name not found")
 
         # Gets an int instead of int-typed Tuple
-        self.n_steps = (torch.randint(self.min_t, self.max_t, (1,)) / self.dt).int().item()
+        self.n_steps = (
+            (torch.randint(self.min_t, self.max_t, (1,)) / self.dt).int().item()
+        )
         fixation = 0 if self.period_name == "response" else 1
 
         self.input_array = torch.zeros((self.n_steps, self.batch_size, 20))
@@ -172,12 +176,16 @@ class Task:
         self.device = device
 
     def __repr__(self):
-        name_str = f"{self.name} - batch_size: {self.batch_size} - n_steps: {self.n_steps}\n"
+        name_str = (
+            f"{self.name} - batch_size: {self.batch_size} - n_steps: {self.n_steps}\n"
+        )
         for task_period in self.task_periods:
             name_str += f"{task_period}\n"
         return name_str
 
-    def generate_stimulus_batch(self, n_mod: int = 1, circle: bool = False) -> torch.Tensor:
+    def generate_stimulus_batch(
+        self, n_mod: int = 1, circle: bool = False
+    ) -> torch.Tensor:
         """Create a batch of angles in radians as an input for a task period.
 
         Parameters
@@ -195,7 +203,9 @@ class Task:
             (batch_size, n_mod)
         """
         if circle:
-            points = torch.linspace(0, 2*torch.pi, self.batch_size+1)[:-1].unsqueeze(1)
+            points = torch.linspace(0, 2 * torch.pi, self.batch_size + 1)[
+                :-1
+            ].unsqueeze(1)
             theta = theta = torch.ones((self.batch_size, n_mod)) * points
         else:
             theta = torch.rand((self.batch_size, n_mod)) * 2 * torch.pi
@@ -271,7 +281,9 @@ class Task:
         task_input_array
             The input array for the task. Takes shape (T, batch_size, 20).
         """
-        task_input_array = torch.cat([period.input_array for period in self.task_periods], dim=0)
+        task_input_array = torch.cat(
+            [period.input_array for period in self.task_periods], dim=0
+        )
         if self.gamma is not None:
             task_input_array += (
                 torch.randn(task_input_array.size()) * np.sqrt(2 / self.gamma) * 0.1

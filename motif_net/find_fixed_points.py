@@ -106,7 +106,12 @@ def find_fixed_points(
     f_points = []
     fpf = fp.FixedPointFinder(model, **fpf_hp)
     for i, (period_input, period_hidden_state, period_output, period) in enumerate(
-        zip(input_state_periods, hidden_state_periods, output_state_periods, task_periods)
+        zip(
+            input_state_periods,
+            hidden_state_periods,
+            output_state_periods,
+            task_periods,
+        )
     ):
         logger.info(f"Finding fixed points for {period}...")
 
@@ -124,7 +129,9 @@ def find_fixed_points(
 
         pca_index = (1, 2) if i == len(task_periods) - 1 else (0, 1)
         unique_fps, all_fps = fpf.find_fixed_points(state_trajectory, inputs)
-        fig = fp.plot_fps(unique_fps, period_output, pca_index, period_hidden_state, title=period)
+        fig = fp.plot_fps(
+            unique_fps, period_output, pca_index, period_hidden_state, title=period
+        )
         figures.append(fig)
         f_points.append(unique_fps)
         logger.info(f"Saving plot to {output_dir}/{period}_fp_struct.png")

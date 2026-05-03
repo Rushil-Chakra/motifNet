@@ -92,7 +92,6 @@ def plot_fps(
         fig = plt.figure(figsize=(FIG_WIDTH, FIG_HEIGHT), tight_layout=True)
 
     if state_traj is not None:
-
         state_traj_txbxd = state_traj
         [n_time, n_batch, n_states] = state_traj_txbxd.shape
 
@@ -147,7 +146,9 @@ def plot_fps(
 
             cos_theta = np.expand_dims(output[:, batch_idx, 2], 1)
             z_idx = np.concat([z_idx, cos_theta], axis=1)
-            z_idx = np.concat([z_idx[:, pca_index[0]], z_idx[:, pca_index[1]], z_idx[:, -1]])
+            z_idx = np.concat(
+                [z_idx[:, pca_index[0]], z_idx[:, pca_index[1]], z_idx[:, -1]]
+            )
             plot_123d(ax, z_idx, color="b", linewidth=0.2)
 
     for init_idx in range(n_inits):
@@ -209,7 +210,6 @@ def plot_fixed_point(
     has_J = J is not None
 
     if has_J:
-
         if not fp.has_decomposed_jacobians:
             """Ideally, never wind up here. Eigen decomposition is much faster in batch mode."""
             print("Decomposing Jacobians, one fixed point at time.")
@@ -249,7 +249,6 @@ def plot_fixed_point(
                 e_val_mag = np.abs(e_vals[idx])
 
                 if e_val_mag > 1.0 or do_plot_stable_modes:
-
                     # Already real. Cast to avoid warning.
                     e_vec = np.real(e_vecs[:, idx])
 

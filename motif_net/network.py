@@ -69,7 +69,9 @@ class MotifNetwork(nn.Module):
 
         # Layer definitions
         self.in2hi = nn.Linear(self.input_size, self.hidden_size, device=self.device)
-        self.hi2hi = nn.Linear(self.hidden_size, self.hidden_size, bias=False, device=self.device)
+        self.hi2hi = nn.Linear(
+            self.hidden_size, self.hidden_size, bias=False, device=self.device
+        )
         self.hi2out = nn.Linear(self.hidden_size, self.output_size, device=self.device)
 
         self.private_noise_std = private_noise_std
@@ -123,7 +125,9 @@ class MotifNetwork(nn.Module):
 
         # ushing function definitions from paper
         for i in range(x.shape[0]):
-            noise = torch.normal(torch.zeros(h_t.size()), self.private_noise_std).to(self.device)
+            noise = torch.normal(torch.zeros(h_t.size()), self.private_noise_std).to(
+                self.device
+            )
             h_t = (1 - self.gamma) * h_t + self.gamma * self.nonlinearity(
                 self.hi2hi(h_t) + self.in2hi(x[i]) + noise
             )
@@ -146,9 +150,9 @@ class MotifNetwork(nn.Module):
             An initialized hidden state using the ``kaiming_uniform_`` function from pytorch.
         Takes shape (batch_size, hidden_size)
         """
-        h_0 = torch.nn.init.kaiming_uniform_(torch.empty(batch_size, self.hidden_size)).to(
-            self.device
-        )
+        h_0 = torch.nn.init.kaiming_uniform_(
+            torch.empty(batch_size, self.hidden_size)
+        ).to(self.device)
         return h_0
 
     # TODO: define a localized initialization where connections are in neighborhoods

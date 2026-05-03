@@ -40,7 +40,9 @@ def _get_positive_theta(sin: npt.NDArray, cos: npt.NDArray) -> npt.NDArray:
     return theta
 
 
-def _build_output_df(time_spans: dict) -> Callable[[npt.NDArray, str, int], pd.DataFrame]:
+def _build_output_df(
+    time_spans: dict,
+) -> Callable[[npt.NDArray, str, int], pd.DataFrame]:
     """Closure to build a dataframe where ``time_spans`` is not parameterized.
 
     Parameters
@@ -76,7 +78,9 @@ def _build_output_df(time_spans: dict) -> Callable[[npt.NDArray, str, int], pd.D
         periods = list(time_spans.keys())
         df = pd.DataFrame({"theta": np.max((theta, np.zeros(theta.shape)), axis=0)})
         for period in periods:
-            df.loc[time_spans[period]["start"] : time_spans[period]["end"], "period"] = period
+            df.loc[
+                time_spans[period]["start"] : time_spans[period]["end"], "period"
+            ] = period
         df["radius"] = radius
         df.loc[df["theta"] == 0, "radius"] = 0
         df["label"] = label
@@ -195,9 +199,14 @@ def plot_task(
     n_labels = labels.shape[0]
 
     layout = [["fixation"] * n_tasks]
-    layout.extend([[f"{label}_{period}" for period in time_spans.keys()] for label in labels])
+    layout.extend(
+        [[f"{label}_{period}" for period in time_spans.keys()] for label in labels]
+    )
     projection = {
-        key: {"projection": "polar"} for row in layout for key in row if key != "fixation"
+        key: {"projection": "polar"}
+        for row in layout
+        for key in row
+        if key != "fixation"
     }
     heights = [1.25] + [1] * n_labels
 
@@ -205,17 +214,23 @@ def plot_task(
         layout, per_subplot_kw=projection, height_ratios=heights, figsize=(24, 16)
     )
     fig.tight_layout()
-    title = task.name + (f" - Iterations: {iterations:,}" if iterations is not None else "")
+    title = task.name + (
+        f" - Iterations: {iterations:,}" if iterations is not None else ""
+    )
     fig.suptitle(title)
     cmap = Pastel2
 
     # plot fixation
     axd["fixation"].plot(fixation)
     for i, (period, times) in enumerate(time_spans.items()):
-        axd["fixation"].axvspan(times["start"], times["end"], 0, 1, color=cmap(i), alpha=0.5)
+        axd["fixation"].axvspan(
+            times["start"], times["end"], 0, 1, color=cmap(i), alpha=0.5
+        )
         midpoint = (times["start"] + times["end"]) / 2
         label = f"{period}\nt = {times['end'] - times['start']}"
-        axd["fixation"].text(midpoint, 0.05, label, ha="center", va="bottom", size="xx-large")
+        axd["fixation"].text(
+            midpoint, 0.05, label, ha="center", va="bottom", size="xx-large"
+        )
         axd["fixation"].set_yticks([0, 1])
 
     xticks = [0] + [time_spans[period]["end"] for period in time_spans]
@@ -223,7 +238,9 @@ def plot_task(
     axd["fixation"].set_xlim(0, time_spans[list(time_spans.keys())[-1]]["end"])
 
     legend_label = (
-        ["input", "expected", "estimate"] if "y_hat" in labels else ["input", "expected"]
+        ["input", "expected", "estimate"]
+        if "y_hat" in labels
+        else ["input", "expected"]
     )
     axd["fixation"].legend(legend_label, loc="upper right", fontsize="xx-large")
 
@@ -241,9 +258,15 @@ def plot_task(
             period_df = label_df.loc[label_df["period"] == period]
             marker = "o" if label == "y_hat" else "x"
             axd[f"{label}_{period}"].scatter(
-                period_df["theta"], period_df["radius"], s=64, marker=marker, c=color[label]
+                period_df["theta"],
+                period_df["radius"],
+                s=64,
+                marker=marker,
+                c=color[label],
             )
-            axd[f"{label}_{period}"].set(yticks=[0, 1, 2], yticklabels=[], xticklabels=[])
+            axd[f"{label}_{period}"].set(
+                yticks=[0, 1, 2], yticklabels=[], xticklabels=[]
+            )
             axd[f"{label}_{period}"].patch.set(facecolor=cmap(i, alpha=0.5))
 
         # Add seperation for each data type

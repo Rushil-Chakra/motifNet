@@ -47,7 +47,13 @@ class FixedPoints(object):
 
     """ List of class attributes that apply to all fixed points
     (i.e., these are not indexed per fixed point). """
-    _nonspecific_attrs = ["dtype", "dtype_complex", "tol_unique", "verbose", "do_alloc_nan"]
+    _nonspecific_attrs = [
+        "dtype",
+        "dtype_complex",
+        "tol_unique",
+        "verbose",
+        "do_alloc_nan",
+    ]
 
     def __init__(
         self,
@@ -182,13 +188,12 @@ class FixedPoints(object):
         self.verbose = verbose
 
         if do_alloc_nan:
-
             if n is None:
-                raise ValueError("n must be provided if " "do_alloc_nan == True.")
+                raise ValueError("n must be provided if do_alloc_nan == True.")
             if n_states is None:
-                raise ValueError("n_states must be provided if " "do_alloc_nan == True.")
+                raise ValueError("n_states must be provided if do_alloc_nan == True.")
             if n_inputs is None:
-                raise ValueError("n_inputs must be provided if " "do_alloc_nan == True.")
+                raise ValueError("n_inputs must be provided if do_alloc_nan == True.")
 
             self.n = n
             self.n_states = n_states
@@ -204,7 +209,9 @@ class FixedPoints(object):
             self.J_xstar = self._alloc_nan((n, n_states, n_states))
 
             self.eigval_J_xstar = self._alloc_nan((n, n_states), dtype=dtype_complex)
-            self.eigvec_J_xstar = self._alloc_nan((n, n_states, n_states), dtype=dtype_complex)
+            self.eigvec_J_xstar = self._alloc_nan(
+                (n, n_states, n_states), dtype=dtype_complex
+            )
 
             # not forcing dtype to bool yet, since np.bool(np.nan) is True,
             # which could be misinterpreted as a valid value.
@@ -257,8 +264,8 @@ class FixedPoints(object):
             fps_to_be_partially_overwritten[index] = fps
         """
 
-        assert isinstance(fps, FixedPoints), "fps must be a FixedPoints object but was %s." % type(
-            fps
+        assert isinstance(fps, FixedPoints), (
+            "fps must be a FixedPoints object but was %s." % type(fps)
         )
 
         if isinstance(index, int):
@@ -327,7 +334,6 @@ class FixedPoints(object):
         manual_data_attrs = ["eigval_J_xstar", "eigvec_J_xstar", "is_stable"]
 
         for attr_name in self._data_attrs:
-
             attr_val = getattr(self, attr_name)
 
             # This manual handling no longer seems necessary, but I'll save
@@ -375,9 +381,9 @@ class FixedPoints(object):
             A FixedPoints object containing only the unique fixed points and
             their associated data. Uniqueness is determined down to tol_unique.
         """
-        assert (
-            self.xstar is not None
-        ), "Cannot find unique fixed points because self.xstar is None."
+        assert self.xstar is not None, (
+            "Cannot find unique fixed points because self.xstar is None."
+        )
 
         if self.inputs is None:
             data_nxd = self.xstar
@@ -387,7 +393,6 @@ class FixedPoints(object):
         idx_keep = []
         idx_checked = np.zeros(self.n, dtype=bool)
         for idx in range(self.n):
-
             if idx_checked[idx]:
                 # If this FP matched others, we've already determined which
                 # of those matching FPs to keep. Repeating would simply
@@ -459,7 +464,6 @@ class FixedPoints(object):
 
         if isinstance(fp, FixedPoints):
             if fp.n_states == self.n_states and fp.n_inputs == self.n_inputs:
-
                 if self.inputs is None:
                     self_data_nxd = self.xstar
                     arg_data_nxd = fp.xstar
@@ -497,7 +501,6 @@ class FixedPoints(object):
         self._assert_matching_nonspecific_attrs(self, new_fps)
 
         for attr_name in self._data_attrs:
-
             this_has = hasattr(self, attr_name)
             that_has = hasattr(new_fps, attr_name)
 
@@ -540,7 +543,9 @@ class FixedPoints(object):
         """
 
         if self.has_decomposed_jacobians:
-            print("%sJacobians have already been decomposed, " "not repeating." % str_prefix)
+            print(
+                "%sJacobians have already been decomposed, not repeating." % str_prefix
+            )
             return
 
         n = self.n  # number of FPs represented in this object
@@ -560,7 +565,9 @@ class FixedPoints(object):
                 # Set eigen-data to NaN if there are any NaNs in the
                 # corresponding Jacobian.
                 e_vals_unsrt = self._alloc_nan((n, n_states), dtype=self.dtype_complex)
-                e_vecs_unsrt = self._alloc_nan((n, n_states, n_states), dtype=dtype_complex)
+                e_vecs_unsrt = self._alloc_nan(
+                    (n, n_states, n_states), dtype=dtype_complex
+                )
 
                 e_vals_unsrt[valid_J_idx], e_vecs_unsrt[valid_J_idx] = np.linalg.eig(
                     self.J_xstar[valid_J_idx]
@@ -571,7 +578,6 @@ class FixedPoints(object):
             e_vals = []
             e_vecs = []
             for J in self.J_xstar:
-
                 if np.any(np.isnan(J)):
                     e_vals_i = self._alloc_nan((n_states,))
                     e_vecs_i = self._alloc_nan((n_states, n_states))
@@ -593,7 +599,9 @@ class FixedPoints(object):
         # Apply the sort
         # There must be a faster way, but I'm too lazy to find it at the moment
         self.eigval_J_xstar = self._alloc_nan((n, n_states), dtype=self.dtype_complex)
-        self.eigvec_J_xstar = self._alloc_nan((n, n_states, n_states), dtype=self.dtype_complex)
+        self.eigvec_J_xstar = self._alloc_nan(
+            (n, n_states, n_states), dtype=self.dtype_complex
+        )
         self.is_stable = np.zeros(n, dtype=bool)
 
         for k in range(n):
@@ -654,7 +662,9 @@ class FixedPoints(object):
             n_states = self.n_states
             dtype_complex = np.complex64
             self.eigval_J_xstar = self._alloc_nan((n, n_states), dtype=dtype_complex)
-            self.eigvec_J_xstar = self._alloc_nan((n, n_states, n_states), dtype=dtype_complex)
+            self.eigvec_J_xstar = self._alloc_nan(
+                (n, n_states, n_states), dtype=dtype_complex
+            )
 
             self.is_stable = self._alloc_nan((n))
 
@@ -675,7 +685,9 @@ class FixedPoints(object):
         print("\nThe q function at the fixed points:")
         print(self.qstar)
 
-        print("\nChange in the q function from the final iteration " "of each optimization:")
+        print(
+            "\nChange in the q function from the final iteration of each optimization:"
+        )
         print(self.dq)
 
         print("\nNumber of iterations completed for each optimization:")
@@ -718,13 +730,15 @@ class FixedPoints(object):
         for attr_name in FixedPoints._data_attrs:
             data = getattr(self, attr_name)
             if data is not None:
-                assert (
-                    data.shape[0] == self.n
-                ), "Detected %d fixed points, but %s.shape is %s " "(shape[0] should be %d" % (
-                    n,
-                    attr_name,
-                    str(data.shape),
-                    n,
+                assert data.shape[0] == self.n, (
+                    "Detected %d fixed points, but %s.shape is %s "
+                    "(shape[0] should be %d"
+                    % (
+                        n,
+                        attr_name,
+                        str(data.shape),
+                        n,
+                    )
                 )
 
     @staticmethod
@@ -752,7 +766,6 @@ class FixedPoints(object):
 
         for attr_name in FixedPoints._data_attrs:
             if all((hasattr(fps, attr_name) for fps in fps_seq)):
-
                 cat_list = [getattr(fps, attr_name) for fps in fps_seq]
 
                 if all([l is None for l in cat_list]):
@@ -822,12 +835,14 @@ class FixedPoints(object):
         for attr_name in FixedPoints._nonspecific_attrs:
             items = [getattr(fps, attr_name) for fps in fps_seq]
             for item in items:
-                assert (
-                    item == items[0]
-                ), "Cannot concatenate FixedPoints because of mismatched %s " "(%s is not %s)" % (
-                    attr_name,
-                    str(items[0]),
-                    str(item),
+                assert item == items[0], (
+                    "Cannot concatenate FixedPoints because of mismatched %s "
+                    "(%s is not %s)"
+                    % (
+                        attr_name,
+                        str(items[0]),
+                        str(item),
+                    )
                 )
 
     @staticmethod

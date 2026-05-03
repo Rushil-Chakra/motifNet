@@ -13,5 +13,6 @@ def test_config_loads():
 def test_config_local():
     with initialize(version_base=None, config_path="../configs"):
         cfg = compose(
-            config_name="default", overrides=["experiments=ReactAnti", "hydra/launcher=local"]
+            config_name="default",
+            overrides=["experiments=ReactAnti", "hydra/launcher=local"],
         )

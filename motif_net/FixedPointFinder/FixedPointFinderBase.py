@@ -28,7 +28,6 @@ logger = logging.getLogger(__name__)
 
 
 class FixedPointFinderBase:
-
     _default_hps = {
         "tol_q": 1e-12,
         "tol_dq": 1e-20,
@@ -209,7 +208,13 @@ class FixedPointFinderBase:
     # *************************************************************************
 
     def sample_inputs_and_states(
-        self, inputs, state_traj_txbxd, outputs, n_inits, valid_txb=None, noise_scale=0.0
+        self,
+        inputs,
+        state_traj_txbxd,
+        outputs,
+        n_inits,
+        valid_txb=None,
+        noise_scale=0.0,
     ):
         """Draws random paired samples from the RNN's inputs and hidden-state
         trajectories. Sampled states (but not inputs) can optionally be
@@ -250,7 +255,9 @@ class FixedPointFinderBase:
         n_outputs = outputs.shape[2]
 
         valid_txb = self._get_valid_mask(n_time, n_batch, valid_txb=valid_txb)
-        time_indices, trial_indices = self._sample_trial_and_time_indices(valid_txb, n_inits)
+        time_indices, trial_indices = self._sample_trial_and_time_indices(
+            valid_txb, n_inits
+        )
 
         # Draw random samples from inputs and state trajectories
         input_samples = np.zeros([n_inits, n_inputs])
@@ -306,7 +313,9 @@ class FixedPointFinderBase:
         [n_time, n_batch, n_states] = state_traj_txbxd.shape
 
         valid_txb = self._get_valid_mask(n_time, n_batch, valid_txb=valid_txb)
-        time_indices, trial_indices = self._sample_trial_and_time_indices(valid_txb, n_inits)
+        time_indices, trial_indices = self._sample_trial_and_time_indices(
+            valid_txb, n_inits
+        )
 
         # Draw random samples from state trajectories
         states = np.zeros([n_inits, n_states])
@@ -353,7 +362,9 @@ class FixedPointFinderBase:
         """
         n = initial_states.shape[0]
 
-        self._print_if_verbose("\nSearching for fixed points " "from %d initial states.\n" % n)
+        self._print_if_verbose(
+            "\nSearching for fixed points from %d initial states.\n" % n
+        )
 
         if inputs.shape[0] == 1:
             inputs_nxd = np.tile(inputs, [n, 1])  # safe, even if n == 1.
@@ -367,7 +378,9 @@ class FixedPointFinderBase:
                 initial_states, inputs_nxd, cond_ids=cond_ids
             )
         elif self.method == "joint":
-            all_fps = self._run_joint_optimization(initial_states, inputs_nxd, cond_ids=cond_ids)
+            all_fps = self._run_joint_optimization(
+                initial_states, inputs_nxd, cond_ids=cond_ids
+            )
         else:
             raise ValueError(
                 "Unsupported optimization method. Must be either \
@@ -395,7 +408,8 @@ class FixedPointFinderBase:
         # computational savings when not all are needed.)
         if unique_fps.n > self.max_n_unique:
             self._print_if_verbose(
-                "\tRandomly selecting %d unique " "fixed points to keep." % self.max_n_unique
+                "\tRandomly selecting %d unique "
+                "fixed points to keep." % self.max_n_unique
             )
             max_n_unique = int(self.max_n_unique)
             idx_keep = self.rng.choice(unique_fps.n, max_n_unique, replace=False)
@@ -403,15 +417,16 @@ class FixedPointFinderBase:
 
         if self.do_compute_jacobians:
             if unique_fps.n > 0:
-
                 self._print_if_verbose(
-                    "\tComputing recurrent Jacobian at %d " "unique fixed points." % unique_fps.n
+                    "\tComputing recurrent Jacobian at %d "
+                    "unique fixed points." % unique_fps.n
                 )
                 dFdx = self._compute_recurrent_jacobians(unique_fps)
                 unique_fps.J_xstar = dFdx
 
                 self._print_if_verbose(
-                    "\tComputing input Jacobian at %d " "unique fixed points." % unique_fps.n
+                    "\tComputing input Jacobian at %d "
+                    "unique fixed points." % unique_fps.n
                 )
                 dFdu = self._compute_input_jacobians(unique_fps)
                 unique_fps.dFdu = dFdu
@@ -513,7 +528,9 @@ class FixedPointFinderBase:
     # Helper functions ********************************************************
     # *************************************************************************
 
-    def _run_sequential_optimizations(self, initial_states, inputs, cond_ids=None, q_prior=None):
+    def _run_sequential_optimizations(
+        self, initial_states, inputs, cond_ids=None, q_prior=None
+    ):
         """Finds fixed points sequentially, running an optimization from one
         initial state at a time.
 
@@ -539,18 +556,23 @@ class FixedPointFinderBase:
         is_fresh_start = q_prior is None
 
         if is_fresh_start:
-            self._print_if_verbose("\tFinding fixed points via " "sequential optimizations...")
+            self._print_if_verbose(
+                "\tFinding fixed points via sequential optimizations..."
+            )
 
         n_inits, n_states = initial_states.shape
         n_inputs = inputs.shape[1]
 
         # Allocate memory for storing results
         fps = FixedPoints(
-            do_alloc_nan=True, n=n_inits, n_states=n_states, n_inputs=n_inputs, dtype=self.np_dtype
+            do_alloc_nan=True,
+            n=n_inits,
+            n_states=n_states,
+            n_inputs=n_inputs,
+            dtype=self.np_dtype,
         )
 
         for init_idx in range(n_inits):
-
             initial_states_i = initial_states[init_idx : (init_idx + 1)]
             inputs_i = inputs[init_idx]
 
@@ -560,10 +582,13 @@ class FixedPointFinderBase:
                 colors_i = cond_ids[init_idx]
 
             if is_fresh_start:
-                self._print_if_verbose("\n\tInitialization %d of %d:" % (init_idx + 1, n_inits))
+                self._print_if_verbose(
+                    "\n\tInitialization %d of %d:" % (init_idx + 1, n_inits)
+                )
             else:
                 self._print_if_verbose(
-                    "\n\tOutlier %d of %d (q=%.2e):" % (init_idx + 1, n_inits, q_prior[init_idx])
+                    "\n\tOutlier %d of %d (q=%.2e):"
+                    % (init_idx + 1, n_inits, q_prior[init_idx])
                 )
 
             fps[init_idx] = self._run_single_optimization(
@@ -611,10 +636,12 @@ class FixedPointFinderBase:
         if valid_txb is None:
             valid_txb = np.ones((n_time, n_batch), dtype=bool)
         else:
-
             assert (
                 valid_txb.shape[1] == n_batch and valid_txb.shape[0] == n_time
-            ), "valid_txb.shape should be %s, but is %s" % ((n_time, n_batch), valid_txb.shape)
+            ), "valid_txb.shape should be %s, but is %s" % (
+                (n_time, n_batch),
+                valid_txb.shape,
+            )
 
             if not valid_txb.dtype == bool:
                 valid_txb = valid_txb.astype(bool)
@@ -644,7 +671,9 @@ class FixedPointFinderBase:
         if noise_scale > 0.0:
             return data + noise_scale * self.rng.randn(*data.shape)
         elif noise_scale < 0.0:
-            raise ValueError("noise_scale must be non-negative," " but was %f" % noise_scale)
+            raise ValueError(
+                "noise_scale must be non-negative, but was %f" % noise_scale
+            )
 
     @staticmethod
     def identify_q_outliers(fps, q_thresh):
@@ -748,7 +777,8 @@ class FixedPointFinderBase:
         fps_non_outlier_idx = np.where(scaled_fps_dists < dist_thresh)[0]
         n_fps_non_outliers = fps_non_outlier_idx.size
         logger.info(
-            "\t\tfixed points: %d outliers detected (of %d)." % (n_fps - n_fps_non_outliers, n_fps)
+            "\t\tfixed points: %d outliers detected (of %d)."
+            % (n_fps - n_fps_non_outliers, n_fps)
         )
 
         return fps_non_outlier_idx
@@ -797,7 +827,6 @@ class FixedPointFinderBase:
             cond_ids = outlier_fps.cond_id
 
             if method == "joint":
-
                 self._print_if_verbose(
                     "\tPerforming another round of "
                     "joint optimization, "
@@ -809,7 +838,6 @@ class FixedPointFinderBase:
                 )
 
             elif method == "sequential":
-
                 self._print_if_verbose(
                     "\tPerforming a round of sequential "
                     "optimizations, over outlier "
@@ -834,7 +862,8 @@ class FixedPointFinderBase:
             n_outliers = len(idx_outliers)
 
             self._print_if_verbose(
-                "\n\tDetected %d putative outliers " "(q>%.2e)." % (n_outliers, outlier_min_q)
+                "\n\tDetected %d putative outliers "
+                "(q>%.2e)." % (n_outliers, outlier_min_q)
             )
 
             return idx_outliers
@@ -853,7 +882,6 @@ class FixedPointFinderBase:
         if self.method == "joint":
             N_ROUNDS = 0  # consider making this a hyperparameter
             for round in range(N_ROUNDS):
-
                 fps = perform_outlier_optimization(fps, "joint")
 
                 idx_outliers = outlier_update(fps)
@@ -896,7 +924,8 @@ class FixedPointFinderBase:
 
             logger.info(
                 "q = %.2e +/- %.2e%s"
-                "dq = %.2e +/- %.2e%s" % (mean_q, std_q, delimiter, mean_dq, std_dq, delimiter),
+                "dq = %.2e +/- %.2e%s"
+                % (mean_q, std_q, delimiter, mean_dq, std_dq, delimiter),
                 end="",
             )
 
