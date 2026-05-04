@@ -1,7 +1,6 @@
-from tasks import TaskPeriod, Task
-
 import torch
 from scipy import stats
+from tasks import Task
 
 
 def calc_variance(h_t: torch.Tensor) -> torch.Tensor:

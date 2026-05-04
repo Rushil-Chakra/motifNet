@@ -1,7 +1,7 @@
 import torch
 
 
-def criterion(y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor) -> float:
+def criterion(y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     """Computes the loss for a model output and task.
 
     Parameters
@@ -11,12 +11,14 @@ def criterion(y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor) -> float
     y_hat
         The output of a model evaluation. Takes shape (T, batch_shape, 3)
     mask
-        The masking tensor that weighs the loss during certain time periods. Take shape (T, batch_size, 3)
+        The masking tensor that weighs the loss during certain time periods.
+        Take shape (T, batch_size, 3)
 
     Returns
     -------
     loss
-        The computed loss for the model output and task. This does not include any regularization.
+        The computed loss for the model output and task.
+        This does not include any regularization.
     """
     loss = torch.mean(mask * torch.square(y - y_hat), dim=1).sum()
     return loss
@@ -77,7 +79,7 @@ def retanh(input: torch.Tensor) -> torch.Tensor:
 
 def h_0_criterion(
     y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor, h_0: torch.Tensor
-) -> float:
+) -> torch.Tensor:
     """Computes the loss for a model output and task.
 
     Parameters
@@ -87,12 +89,14 @@ def h_0_criterion(
     y_hat
         The output of a model evaluation. Takes shape (T, batch_shape, 3)
     mask
-        The masking tensor that weighs the loss during certain time periods. Take shape (T, batch_size, 3)
+        The masking tensor that weighs the loss during certain time periods.
+        Take shape (T, batch_size, 3)
 
     Returns
     -------
     loss
-        The computed loss for the model output and task. This does not include any regularization.
+        The computed loss for the model output and task.
+        This does not include any regularization.
     """
     loss = torch.mean(mask * torch.square(y - y_hat), dim=1).sum()
     h_0_loss = torch.diff(h_0, dim=1).square().mean(dim=1).sum()

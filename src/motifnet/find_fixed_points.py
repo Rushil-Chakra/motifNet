@@ -1,15 +1,12 @@
-from .FixedPointFinder.FixedPoints import FixedPoints
-
-
-import torch
-from motif_net import Task
-
-from . import FixedPointFinder as fp
-from .network import MotifNetwork
+import logging
 
 import matplotlib.pyplot as plt
+import torch
 
-import logging
+from . import FixedPointFinder as fp
+from . import Task
+from .FixedPointFinder.FixedPoints import FixedPoints
+from .network import MotifNetwork
 
 logger = logging.Logger(__name__)
 
