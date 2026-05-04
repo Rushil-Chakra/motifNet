@@ -36,3 +36,6 @@ build-backend = "uv_build"
 [tool.ruff.lint]
 # pycodestyle, Pyflakes, isort
 select = ["E", "F", "I"]
+
+[tool.basedpyright]
+reportPrivateImportUsage = "none"
