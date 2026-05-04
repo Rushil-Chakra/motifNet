@@ -7,13 +7,11 @@ import torch
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import OmegaConf
 
-from motif_net.task_init import TASK_DICT
-
-from motif_net.find_fixed_points import get_task_periods, find_fixed_points
-from motif_net.network import MotifNetwork
-from motif_net.tasks import TaskLoader
-from motif_net.train import train
-
+from motifnet.find_fixed_points import find_fixed_points, get_task_periods
+from motifnet.network import MotifNetwork
+from motifnet.task_init import TASK_DICT
+from motifnet.tasks import TaskLoader
+from motifnet.train import train
 
 logger = logging.getLogger(__name__)
 
