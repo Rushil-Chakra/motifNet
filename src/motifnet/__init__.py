@@ -1,3 +1,4 @@
-from . import FixedPointFinder
-from .tasks import Task, TaskPeriod, TaskLoader
-from . import plot
+from . import FixedPointFinder, plot_fps
+from .tasks import Task, TaskLoader, TaskPeriod
+
+__all__ = ["FixedPointFinder", "Task", "TaskPeriod", "TaskLoader", "plot_fps"]
