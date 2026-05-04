@@ -1,6 +1,5 @@
-from typing import Literal, Optional, get_args
-
 from dataclasses import dataclass
+from typing import Literal, get_args
 
 import numpy as np
 import torch

@@ -1,5 +1,5 @@
 import logging
-from typing import Literal, Optional, get_args
+from typing import Literal, get_args
 
 import numpy as np
 import torch
@@ -25,7 +25,7 @@ class MotifNetwork(nn.Module):
         tau: int = 100,
         init_method: init_type = "diag",
         g: float = 0.8,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ) -> None:
         """Model based on https://www.biorxiv.org/content/10.1101/2022.08.15.503870v1.full.pdf
 

@@ -1,7 +1,7 @@
 import logging
 
-import matplotlib.pyplot as plt
 import torch
+from matplotlib.figure import Figure
 
 from . import FixedPointFinder as fp
 from . import Task
@@ -67,7 +67,7 @@ def find_fixed_points(
     task_periods: list,
     output_dir: str,
     fpf_hp: dict = {"outlier_distance_scale": 2, "tol_q": 1e-3},
-) -> tuple[list[plt.Figure], list[FixedPoints]]:
+) -> tuple[list[Figure], list[FixedPoints]]:
     """Finds fixed points for a particular network's hidden state and creates a plot
     for each time period.
 
@@ -125,7 +125,7 @@ def find_fixed_points(
         )
 
         pca_index = (1, 2) if i == len(task_periods) - 1 else (0, 1)
-        unique_fps, all_fps = fpf.find_fixed_points(state_trajectory, inputs)
+        unique_fps, _ = fpf.find_fixed_points(state_trajectory, inputs)
         fig = fp.plot_fps(
             unique_fps, period_output, pca_index, period_hidden_state, title=period
         )

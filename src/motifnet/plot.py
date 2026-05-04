@@ -5,7 +5,6 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import torch
-from matplotlib.cm import Pastel2
 from matplotlib.patches import Rectangle
 
 from .tasks import Task
@@ -57,7 +56,9 @@ def _build_output_df(
 
     def build_data_df(theta: npt.NDArray, label: str, radius: int = 1) -> pd.DataFrame:
         """Builds a dataframe for plotting purposes.
-        Columns are theta (in rad), radius (0 if theta is 0), and label (what type of data)
+
+        Columns are theta (in rad), radius (0 if theta is 0),
+        and label (what type of data)
 
         Parameters
         ----------
@@ -67,8 +68,8 @@ def _build_output_df(
             The label to designate the data type (input, output, estimation, etc.)
         radius
             The radius that will be plotted. By default this is 1, but will go to 0
-            if theta is 0. This is due to the low probability that the 0 angle is actually
-            chosen.
+            if theta is 0. This is due to the low probability that the 0 angle is 
+            actually chosen.
 
         Returns
         -------
